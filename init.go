@@ -32,7 +32,7 @@ func main() {
 	g := Security.GenerateKey("795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498")
 	fmt.Println(g)
 
-	t := "795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498"
+	t := "daklfwklwklkdlcl asdca cascascac"
 
 	tt := []byte(t)
 	var pp []int
