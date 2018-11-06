@@ -60,6 +60,13 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 	return b
 }
 
+func (b Block) GetTransactions() []Transactions.Transaction {
+	if b.merkleTree != nil {
+		return b.merkleTree.GetTransactions()
+	}
+	return nil
+}
+
 func (b Block) PrintTime() {
 	fmt.Println(b.blockHeader.timestamp)
 }

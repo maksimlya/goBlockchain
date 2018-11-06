@@ -61,8 +61,12 @@ func (bc *Blockchain) String() string {
 		s += "Nonce: " + strconv.Itoa(l.GetNonce()) + "\n"
 		s += "Timestamp: " + l.GetTimestamp() + "\n"
 		s += "Merkle Root: " + l.GetMerkleRoot() + "\n"
-		s += "\n}"
-		s += "\n"
+		s += "Transactions: {\n"
+		for _, j := range l.GetTransactions() {
+			s += j.String()
+		}
+		s += "}\n"
+		s += "}\n"
 	}
 	return s
 }

@@ -63,6 +63,15 @@ func (n *Node) verifyNode() string {
 }
 
 //calculateNodeHash is a helper function that calculates the hash of the node.
+
+func (n *MerkleTree) GetTransactions() []Transactions.Transaction {
+	var transactions []Transactions.Transaction
+	for _, j := range n.Leafs {
+		transactions = append(transactions, j.Tx)
+	}
+	return transactions
+}
+
 func (n *Node) calculateNodeHash() ([]byte, error) {
 	if n.leaf {
 		return []byte(Transactions.CalcHash(n.Tx)), nil
