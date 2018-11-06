@@ -24,7 +24,6 @@ type Block struct {
 }
 
 var idx = 0
-var maxSizeOfTx = 500
 
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
