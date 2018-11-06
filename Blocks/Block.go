@@ -24,6 +24,7 @@ type Block struct {
 }
 
 var idx = 0
+var maxSizeOfTx = 500
 
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
@@ -88,4 +89,8 @@ func ValidateHash(hash string, diff int) bool {
 
 func (b Block) GetHash() string {
 	return b.blockHeader.hash
+}
+
+func (b Block) GetGenisis() Block {
+	return MineGenesisBlock()
 }
