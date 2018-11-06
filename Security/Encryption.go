@@ -1,0 +1,251 @@
+package Security
+
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"math"
+	"strconv"
+	"strings"
+)
+
+type j66 interface {
+	generateKey(privKey string) string
+	sign(hash string, privKey string) signature
+	encrypt(message string, pubKey string)
+	verify(hash string, pubKey string, signature2 signature) bool
+}
+
+type signature struct {
+}
+
+func Encrypt(message string, pubKey string) {
+	encoder := base64.URLEncoding
+
+	decode, _ := encoder.DecodeString(pubKey)
+
+	d := string(decode[:32])
+	d = strings.Trim(d, "\x00")
+
+	n := string(decode[32:])
+	n = strings.Trim(n, "\x00")
+
+	dValue, _ := strconv.ParseInt(d, 2, 64)
+	nValue, _ := strconv.ParseInt(n, 2, 64)
+
+	print(dValue)
+	print(nValue)
+
+	dd := float64(dValue)
+	nn := int(nValue)
+
+	//var messages float64 = 22
+	ciph := int((math.Pow(11, dd))) % nn
+
+	res := calcModulu(d, 22, nn)
+
+	asa := tst("10001", 3129348, nn)
+
+	print(asa)
+	print(res)
+
+	print(ciph)
+
+}
+
+func calcModulu(num string, base int, mod int) int {
+	f := 1
+	for i := len(num) - 1; i >= 0; i-- {
+		f = (f * f) % mod
+		if num[len(num)-i-1] == 49 {
+			f = (f * base) % mod
+		}
+	}
+
+	return f
+
+	return f
+}
+
+func tst(num string, base int, mod int) int {
+	f := 1
+	for i := len(num) - 1; i >= 0; i-- {
+		f = (f * f) % mod
+		if num[len(num)-i-1] == 49 {
+			f = (f * base) % mod
+		}
+	}
+
+	return f
+
+	return f
+}
+
+func (signature signature) verify(hash string, pubKey string, signature2 signature) bool {
+	return true
+}
+
+func GenerateKey(hash string) string {
+	encoder := base64.URLEncoding
+
+	temp := []byte(hash)
+	y := 0
+	for i := 0; i < len(hash); i++ {
+		y += int(temp[i])
+	}
+	aNum := y
+	bNum := y / 2
+
+	for !isPrime(aNum) {
+		aNum++
+	}
+	for !isPrime(bNum) {
+		bNum++
+	}
+
+	n := aNum * bNum
+	f := (aNum - 1) * (bNum - 1)
+
+	e := 12 // Must be unique personal number
+	for Gcd(e, f) != 1 {
+		e++
+	}
+
+	d := 0
+	for (d*e)%f != 1 {
+		d++
+	}
+
+	pubKey := int64(d)
+
+	binaryValue := strconv.FormatInt(pubKey, 2)
+	h := []byte(binaryValue)
+	var arr [64]byte
+	for i := 0; i < len(binaryValue); i++ {
+		if h[i] == 48 {
+			arr[i] = 48
+		} else {
+			arr[i] = 49
+		}
+	}
+
+	fiFunc := int64(n)
+	binaryValue = strconv.FormatInt(fiFunc, 2)
+	h = []byte(binaryValue)
+
+	for i := 0; i < len(binaryValue); i++ {
+		if h[i] == 48 {
+			arr[i+32] = 48
+		} else {
+			arr[i+32] = 49
+		}
+	}
+
+	var tempArr []byte = arr[:]
+	final := encoder.EncodeToString(tempArr)
+
+	return string(final)
+}
+
+func isPrime(value int) bool {
+	for i := 2; i <= int(math.Floor(float64(value)/2)); i++ {
+		if value%i == 0 {
+			return false
+		}
+	}
+	return value > 1
+}
+
+func Gcd(x, y int) int {
+	for y != 0 {
+		x, y = y, x%y
+	}
+	return x
+}
+
+func Test(t string) int {
+
+	encoder := base64.URLEncoding
+
+	cipher := sha256.New()
+	cipher.Write([]byte(t))
+	b := hex.EncodeToString(cipher.Sum(nil)) // Temporary
+	a := []byte(b)
+	y := 0
+
+	for i := 0; i < len(b); i++ {
+		y += int(a[i])
+	}
+
+	aNum := y
+	bNum := y / 2
+
+	for !isPrime(aNum) {
+		aNum++
+	}
+	for !isPrime(bNum) {
+		bNum++
+	}
+
+	n := aNum * bNum
+
+	f := (aNum - 1) * (bNum - 1)
+
+	e := 12 // Must be unique personal number
+	for Gcd(e, f) != 1 {
+		e++
+	}
+
+	d := 0
+	for (d*e)%f != 1 {
+		d++
+	}
+
+	tt := int64(d)
+
+	r := strconv.FormatInt(tt, 2)
+	h := []byte(r)
+	var arr [64]byte
+	for i := 0; i < len(r); i++ {
+		if h[i] == 48 {
+			arr[i] = 48
+		} else {
+			arr[i] = 49
+		}
+	}
+
+	tt = int64(n)
+	r = strconv.FormatInt(tt, 2)
+	h = []byte(r)
+
+	for i := 0; i < len(r); i++ {
+		if h[i] == 48 {
+			arr[i+32] = 48
+		} else {
+			arr[i+32] = 49
+		}
+	}
+
+	var bar []byte = arr[:]
+	moo := encoder.EncodeToString(bar)
+
+	print(moo)
+
+	joo, err := encoder.DecodeString(moo)
+
+	print(joo)
+	print(err)
+
+	rees1 := string(joo[:32])
+	rees2 := string(joo[32:])
+
+	rees2 = strings.TrimRight(rees2, "\x00")
+
+	lll, _ := strconv.ParseInt(rees2, 2, 64)
+	print(lll)
+
+	print(rees1)
+	print(rees2)
+
+	return y
+}
