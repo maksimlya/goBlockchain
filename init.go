@@ -1,35 +1,33 @@
 package main
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/Blocks"
-	"goBlockchain/Security"
+	"goBlockchain/DataStructures"
 	"goBlockchain/Transactions"
 )
 
+//CalculateHash hashes the values of a TestContent
+
 func main() {
 
-	b := Blocks.MineGenesisBlock()
+	tx1 := Transactions.Tx("Yaki", "Tomer", 10, "Wow")
+	tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
+	tx3 := Transactions.Tx("Yaki", "Zona", 5, "Arnona")
+	tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
 
-	b.PrintIdx()
-	b.PrintHash()
-	b.PrintTime()
+	var list []Transactions.Transaction
 
-	t1 := Transactions.Tx("yaki", "max", 10, "shit")
-	fmt.Println(t1)
-	t2 := Transactions.Tx("max", "yaki", 5, "shit")
-	fmt.Println(t2)
+	list = append(list, tx1)
+	list = append(list, tx2)
+	list = append(list, tx3)
+	list = append(list, tx4)
 
-	enc := sha256.New()
-	enc.Write([]byte("abcd"))
-	j := hex.EncodeToString(enc.Sum(nil))
+	merkle, _ := DataStructures.NewTree(list)
 
-	a := Security.GenerateKey(j)
+	fmt.Println(merkle.GetTransactionsWithTag("Arnona"))
 
-	Security.Encrypt("gogo", a)
-
-	fmt.Println(a)
+	fmt.Println(merkle.HexString())
+	fmt.Println(hex.EncodeToString(merkle.MerkleRoot()))
 
 }
