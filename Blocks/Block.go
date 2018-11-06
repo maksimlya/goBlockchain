@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"goBlockchain/DataStructures"
 	"goBlockchain/Transactions"
 	"strconv"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 type Header struct {
 	index        int
-	timestamp    int64
+	timestamp    string
 	hash         string
 	previousHash string
 	nonce        int
@@ -19,25 +20,26 @@ type Header struct {
 }
 type Block struct {
 	blockHeader Header
-	trans       []Transactions.Transaction
+	merkleTree  *DataStructures.MerkleTree
 }
 
 var idx = 0
 
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
-	tStamp := time.Now().UnixNano()
-	hasher.Write([]byte(strconv.FormatInt(tStamp, 10)))
-	b := Block{blockHeader: Header{index: 0, timestamp: tStamp, hash: hex.EncodeToString(hasher.Sum(nil)), previousHash: strconv.Itoa(0), nonce: 0, merkleRoot: ""}}
+	tStamp := time.Now().Format("02-01-2006 15:04:05")
+	hasher.Write([]byte(tStamp))
+	b := Block{blockHeader: Header{index: 0, timestamp: tStamp, hash: hex.EncodeToString(hasher.Sum(nil)), previousHash: strconv.Itoa(0), nonce: 0, merkleRoot: ""}, merkleTree: nil}
 	return b
 }
 
-func MineBlock(difficulty int, previousHash string) Block {
-	tStamp := time.Now().UnixNano()
+func MineBlock(difficulty int, previousHash string, txs []Transactions.Transaction) Block {
+	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	nonce := 0
+	merkle, _ := DataStructures.NewTree(txs)
 	hasher := sha256.New()
 	hasher.Write([]byte(strconv.Itoa(idx + 1)))
-	hasher.Write([]byte(strconv.FormatInt(tStamp, 10)))
+	hasher.Write([]byte(tStamp))
 	hasher.Write([]byte(previousHash))
 	hasher.Write([]byte(strconv.Itoa(0)))
 	hash := hex.EncodeToString(hasher.Sum(nil))
@@ -47,14 +49,14 @@ func MineBlock(difficulty int, previousHash string) Block {
 		nonce++
 		hasher := sha256.New()
 		hasher.Write([]byte(strconv.Itoa(idx + 1)))
-		hasher.Write([]byte(strconv.FormatInt(tStamp, 10)))
+		hasher.Write([]byte(tStamp))
 		hasher.Write([]byte(previousHash))
 		hasher.Write([]byte(strconv.Itoa(nonce)))
 		hash = hex.EncodeToString(hasher.Sum(nil))
 		isValid = ValidateHash(hash, difficulty)
 	}
 	idx++
-	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: ""}}
+	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: string(merkle.Root.Hash)}, merkleTree: merkle}
 	return b
 }
 
