@@ -1,8 +1,8 @@
 package DataStructures
 
 import (
-	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"goBlockchain/Transactions"
@@ -20,7 +20,7 @@ import (
 //a list of pointers to the leaf nodes, and the merkle root.
 type MerkleTree struct {
 	Root       *Node
-	merkleRoot []byte
+	merkleRoot string
 	Leafs      []*Node
 }
 
@@ -32,7 +32,7 @@ type Node struct {
 	Right  *Node
 	leaf   bool
 	dup    bool
-	Hash   []byte
+	Hash   string
 	Tx     Transactions.Transaction
 }
 
@@ -49,26 +49,17 @@ func (n *Node) PrintHash() {
 	fmt.Println(n.Hash)
 }
 
-func (n *Node) verifyNode() ([]byte, error) {
+func (n *Node) verifyNode() string {
 	if n.leaf {
-		return []byte(Transactions.CalcHash(n.Tx)), nil
+		return Transactions.CalcHash(n.Tx)
 	}
-	rightBytes, err := n.Right.verifyNode()
-	if err != nil {
-		return nil, err
-	}
-
-	leftBytes, err := n.Left.verifyNode()
-	if err != nil {
-		return nil, err
-	}
+	rightBytes := n.Right.verifyNode()
+	leftBytes := n.Left.verifyNode()
 
 	h := sha256.New()
-	if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
-		return nil, err
-	}
+	h.Write([]byte(leftBytes + rightBytes))
 
-	return h.Sum(nil), nil
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 //calculateNodeHash is a helper function that calculates the hash of the node.
@@ -78,7 +69,7 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 	}
 
 	h := sha256.New()
-	if _, err := h.Write(append(n.Left.Hash, n.Right.Hash...)); err != nil {
+	if _, err := h.Write([]byte(n.Left.Hash + n.Right.Hash)); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +99,7 @@ func buildWithContent(cs []Transactions.Transaction) (*Node, []*Node, error) {
 	}
 	var leafs []*Node
 	for _, tx := range cs {
-		hash := []byte(Transactions.CalcHash(tx))
+		hash := Transactions.CalcHash(tx)
 
 		leafs = append(leafs, &Node{
 			Hash: hash,
@@ -143,14 +134,15 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 		if i+1 == len(nl) {
 			right = i
 		}
-		chash := append(nl[left].Hash, nl[right].Hash...)
-		if _, err := h.Write(chash); err != nil {
+		chash := (nl[left].Hash + nl[right].Hash)
+
+		if _, err := h.Write([]byte(chash)); err != nil {
 			return nil, err
 		}
 		n := &Node{
 			Left:  nl[left],
 			Right: nl[right],
-			Hash:  h.Sum(nil),
+			Hash:  hex.EncodeToString(h.Sum(nil)),
 		}
 		nodes = append(nodes, n)
 		nl[left].Parent = n
@@ -163,7 +155,7 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 }
 
 //MerkleRoot returns the unverified Merkle Root (hash of the root node) of the tree.
-func (m *MerkleTree) MerkleRoot() []byte {
+func (m *MerkleTree) MerkleRoot() string {
 	return m.merkleRoot
 }
 
@@ -201,12 +193,9 @@ func (m *MerkleTree) RebuildTreeWith(cs []Transactions.Transaction) error {
 //VerifyTree verify tree validates the hashes at each level of the tree and returns true if the
 //resulting hash at the root of the tree matches the resulting root hash; returns false otherwise.
 func (m *MerkleTree) VerifyTree() (bool, error) {
-	calculatedMerkleRoot, err := m.Root.verifyNode()
-	if err != nil {
-		return false, err
-	}
+	calculatedMerkleRoot := m.Root.verifyNode()
 
-	if bytes.Compare(m.merkleRoot, calculatedMerkleRoot) == 0 {
+	if m.merkleRoot == calculatedMerkleRoot {
 		return true, nil
 	}
 	return false, nil
@@ -235,7 +224,7 @@ func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, erro
 					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
 						return false, err
 					}
-					if bytes.Compare(h.Sum(nil), currentParent.Hash) != 0 {
+					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
 						return false, nil
 					}
 					currentParent = currentParent.Parent
@@ -243,7 +232,7 @@ func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, erro
 					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
 						return false, err
 					}
-					if bytes.Compare(h.Sum(nil), currentParent.Hash) != 0 {
+					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
 						return false, nil
 					}
 					currentParent = currentParent.Parent
