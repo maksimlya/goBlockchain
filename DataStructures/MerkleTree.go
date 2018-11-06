@@ -39,6 +39,16 @@ type Node struct {
 //verifyNode walks down the tree until hitting a leaf, calculating the hash at each level
 //and returning the resulting hash of Node n.
 
+func (n *Node) PrintHash() {
+	if n.Right != nil {
+		n.Right.PrintHash()
+	}
+	if n.Left != nil {
+		n.Left.PrintHash()
+	}
+	fmt.Println(n.Hash)
+}
+
 func (n *Node) verifyNode() ([]byte, error) {
 	if n.leaf {
 		return []byte(Transactions.CalcHash(n.Tx)), nil
