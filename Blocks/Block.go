@@ -4,26 +4,31 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"goBlockchain/Transactions"
 	"strconv"
 	"time"
 )
 
-type Block struct {
+type Header struct {
 	index        int
 	timestamp    int64
 	hash         string
 	previousHash string
 	nonce        int
+	merkleRoot   string
+}
+type Block struct {
+	blockHeader Header
+	trans       []Transactions.Transaction
 }
 
 var idx = 0
 
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
-
 	tStamp := time.Now().UnixNano()
 	hasher.Write([]byte(strconv.FormatInt(tStamp, 10)))
-	b := Block{index: 0, timestamp: tStamp, hash: hex.EncodeToString(hasher.Sum(nil)), previousHash: strconv.Itoa(0), nonce: 0}
+	b := Block{blockHeader: Header{index: 0, timestamp: tStamp, hash: hex.EncodeToString(hasher.Sum(nil)), previousHash: strconv.Itoa(0), nonce: 0, merkleRoot: ""}}
 	return b
 }
 

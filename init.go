@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"goBlockchain/Blocks"
 	"goBlockchain/Security"
+	"goBlockchain/Transactions"
 )
 
 func main() {
@@ -16,12 +17,10 @@ func main() {
 	b.PrintHash()
 	b.PrintTime()
 
-	c := Blocks.MineBlock(5, b.GetHash())
-	d := Blocks.MineBlock(5, c.GetHash())
-	e := Blocks.MineBlock(5, d.GetHash())
-	f := Blocks.MineBlock(5, e.GetHash())
-
-	f.PrintHash()
+	t1 := Transactions.Tx("yaki", "max", 10, "shit")
+	fmt.Println(t1)
+	t2 := Transactions.Tx("max", "yaki", 5, "shit")
+	fmt.Println(t2)
 
 	enc := sha256.New()
 	enc.Write([]byte("abcd"))
