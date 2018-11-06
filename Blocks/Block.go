@@ -54,18 +54,18 @@ func MineBlock(difficulty int, previousHash string) Block {
 		isValid = ValidateHash(hash, difficulty)
 	}
 	idx++
-	b := Block{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce}
+	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: ""}}
 	return b
 }
 
 func (b Block) PrintTime() {
-	fmt.Println(b.timestamp)
+	fmt.Println(b.blockHeader.timestamp)
 }
 func (b Block) PrintIdx() {
-	fmt.Println(b.index)
+	fmt.Println(b.blockHeader.index)
 }
 func (b Block) PrintHash() {
-	fmt.Println(b.hash)
+	fmt.Println(b.blockHeader.hash)
 }
 
 func ValidateHash(hash string, diff int) bool {
@@ -85,5 +85,5 @@ func ValidateHash(hash string, diff int) bool {
 }
 
 func (b Block) GetHash() string {
-	return b.hash
+	return b.blockHeader.hash
 }
