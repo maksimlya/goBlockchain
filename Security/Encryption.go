@@ -1,9 +1,7 @@
 package Security
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"math"
 	"strconv"
 	"strings"
@@ -161,91 +159,4 @@ func Gcd(x, y int) int {
 		x, y = y, x%y
 	}
 	return x
-}
-
-func Test(t string) int {
-
-	encoder := base64.URLEncoding
-
-	cipher := sha256.New()
-	cipher.Write([]byte(t))
-	b := hex.EncodeToString(cipher.Sum(nil)) // Temporary
-	a := []byte(b)
-	y := 0
-
-	for i := 0; i < len(b); i++ {
-		y += int(a[i])
-	}
-
-	aNum := y
-	bNum := y / 2
-
-	for !isPrime(aNum) {
-		aNum++
-	}
-	for !isPrime(bNum) {
-		bNum++
-	}
-
-	n := aNum * bNum
-
-	f := (aNum - 1) * (bNum - 1)
-
-	e := 12 // Must be unique personal number
-	for Gcd(e, f) != 1 {
-		e++
-	}
-
-	d := 0
-	for (d*e)%f != 1 {
-		d++
-	}
-
-	tt := int64(d)
-
-	r := strconv.FormatInt(tt, 2)
-	h := []byte(r)
-	var arr [64]byte
-	for i := 0; i < len(r); i++ {
-		if h[i] == 48 {
-			arr[i] = 48
-		} else {
-			arr[i] = 49
-		}
-	}
-
-	tt = int64(n)
-	r = strconv.FormatInt(tt, 2)
-	h = []byte(r)
-
-	for i := 0; i < len(r); i++ {
-		if h[i] == 48 {
-			arr[i+32] = 48
-		} else {
-			arr[i+32] = 49
-		}
-	}
-
-	var bar []byte = arr[:]
-	moo := encoder.EncodeToString(bar)
-
-	print(moo)
-
-	joo, err := encoder.DecodeString(moo)
-
-	print(joo)
-	print(err)
-
-	rees1 := string(joo[:32])
-	rees2 := string(joo[32:])
-
-	rees2 = strings.TrimRight(rees2, "\x00")
-
-	lll, _ := strconv.ParseInt(rees2, 2, 64)
-	print(lll)
-
-	print(rees1)
-	print(rees2)
-
-	return y
 }

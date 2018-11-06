@@ -9,15 +9,16 @@ import (
 )
 
 func main() {
+
 	b := Blocks.MineGenesisBlock()
 
 	b.PrintIdx()
 	b.PrintHash()
 	b.PrintTime()
 
-	// c := Blocks.MineBlock(5,b.GetHash())
+	c := Blocks.MineBlock(5, b.GetHash())
 
-	// c.PrintHash()
+	c.PrintHash()
 
 	enc := sha256.New()
 	enc.Write([]byte("abcd"))
