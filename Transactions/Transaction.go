@@ -3,6 +3,7 @@ package Transactions
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"strconv"
 	"time"
 )
 
@@ -43,4 +44,18 @@ func Equals(first Transaction, second Transaction) bool {
 
 func (t Transaction) GetTag() string {
 	return t.tag
+}
+
+func (tx *Transaction) String() string {
+	s := ""
+	s += "{\n" //fmt.Sprint(l)
+	s += "Tx Id: " + strconv.Itoa(tx.id) + "\n"
+	s += "From Address: " + tx.from + "\n"
+	s += "To Address: " + tx.to + "\n"
+	s += "Amount: " + strconv.Itoa(tx.amount) + "\n"
+	s += "Timestamp: " + tx.timestamp + "\n"
+	s += "Tag: " + tx.tag + "\n"
+	s += "}\n"
+
+	return s
 }
