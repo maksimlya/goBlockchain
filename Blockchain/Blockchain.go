@@ -16,7 +16,7 @@ var maxSizeOfTx = 8
 
 func InitBlockchain(block Blocks.Block) Blockchain {
 	bc := Blockchain{chain: []Blocks.Block{}, numOfblocks: 0, difficulty: 4, pendingTx: []Transactions.Transaction{}}
-	bc.chain = append(bc.chain, block.GetGenisis())
+	bc.chain = append(bc.chain, Blocks.MineGenesisBlock())
 	bc.numOfblocks++
 	return bc
 }
