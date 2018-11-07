@@ -13,7 +13,7 @@ type Blockchain struct {
 	pendingTx   []Transactions.Transaction
 }
 
-var maxSizeOfTx = 8
+var maxSizeOfTx = 4
 
 func InitBlockchain() Blockchain {
 	bc := Blockchain{chain: []Blocks.Block{}, numOfblocks: 0, difficulty: 4, pendingTx: []Transactions.Transaction{}}
@@ -29,6 +29,18 @@ func (bc Blockchain) InsertToChain(block Blocks.Block) {
 		bc.chain = append(bc.chain, Blocks.MineBlock(bc.difficulty, bc.GetLastBlock().GetHash(), remainingTx))
 		bc.numOfblocks++
 	}
+}
+
+func (bc *Blockchain) MineNextBlock() {
+	var transactios []Transactions.Transaction
+	amountOfTx := 0
+	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ {
+		transactios = append(transactios, bc.pendingTx[i])
+		amountOfTx++
+	}
+	bc.pendingTx = bc.pendingTx[amountOfTx:] // TODO -  improve for dynamic use
+	bc.chain = append(bc.chain, Blocks.MineBlock(bc.difficulty, bc.GetLastBlock().GetHash(), transactios))
+	bc.numOfblocks++
 }
 
 func (bc Blockchain) SearchBlock(hash string) Blocks.Block {
@@ -49,19 +61,10 @@ func (bc Blockchain) GetLastBlock() Blocks.Block {
 	return bc.chain[bc.numOfblocks-1]
 }
 
-func (bc *Blockchain) MineNextBlock() {
-	var transactios []Transactions.Transaction
-	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ {
-		transactios = append(transactios, bc.pendingTx[i])
-	}
-	bc.chain = append(bc.chain, Blocks.MineBlock(bc.difficulty, bc.GetLastBlock().GetHash(), transactios))
-	bc.numOfblocks++
-}
-
 func (bc *Blockchain) String() string {
 	s := ""
 	for _, l := range bc.chain {
-		s += "{\n" //fmt.Sprint(l)
+		s += "{\n"
 		s += "Block Id: " + strconv.Itoa(l.GetId()) + "\n"
 		s += "Block hash: " + l.GetHash() + "\n"
 		s += "Previous Hash: " + l.GetPreviousHash() + "\n"
@@ -73,7 +76,7 @@ func (bc *Blockchain) String() string {
 			s += j.String()
 		}
 		s += "}\n"
-		s += "}\n"
+		s += "};\n"
 	}
 	return s
 }

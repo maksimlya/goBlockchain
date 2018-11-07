@@ -14,53 +14,61 @@ func main() {
 	tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
 	tx3 := Transactions.Tx("Yaki", "Zona", 5, "Arnona")
 	tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
-
-	var list []Transactions.Transaction
-
-	list = append(list, tx1)
-	list = append(list, tx2)
-	list = append(list, tx3)
-	list = append(list, tx4)
-
-	//merkle, _ := DataStructures.NewTree(list)
-
-	//	merkle.Root.PrintHash()
-
-	//g := Security.GenerateKey("795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498")
-	//fmt.Println(g)
+	tx5 := Transactions.Tx("Yaki", "Momo", 10, "Wow")
+	tx6 := Transactions.Tx("Yaki", "Popo", 10000, "Arnona")
+	tx7 := Transactions.Tx("Yaki", "Zozo", 51, "Arnona")
+	tx8 := Transactions.Tx("Yaki", "Koko", 10, "Takataka")
 	//
-	//t := "daklfwklwklkdlcl asdca cascascac"
+	//var list []Transactions.Transaction
 	//
-	//tt := []byte(t)
-	//var pp []int
+	//list = append(list, tx1)
+	//list = append(list, tx2)
+	//list = append(list, tx3)
+	//list = append(list, tx4)
 	//
-	//for i := 0; i < len(tt); i++ {
-	//	pp = append(pp, Security.Encrypt(strconv.Itoa(int(tt[i])), g))
-	//}
+	////merkle, _ := DataStructures.NewTree(list)
 	//
-	//privKey := Security.GeneratePrivKey("795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498")
+	////	merkle.Root.PrintHash()
 	//
-	//for i := 0; i < len(tt); i++ {
-	//	pp[i] = Security.Encrypt(strconv.Itoa(int(pp[i])), privKey)
-	//}
+	////g := Security.GenerateKey("795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498")
+	////fmt.Println(g)
+	////
+	////t := "daklfwklwklkdlcl asdca cascascac"
+	////
+	////tt := []byte(t)
+	////var pp []int
+	////
+	////for i := 0; i < len(tt); i++ {
+	////	pp = append(pp, Security.Encrypt(strconv.Itoa(int(tt[i])), g))
+	////}
+	////
+	////privKey := Security.GeneratePrivKey("795A433949D3340E7CBA7971DE1B428830C15D901B65303B3A65C0A45EE3F498")
+	////
+	////for i := 0; i < len(tt); i++ {
+	////	pp[i] = Security.Encrypt(strconv.Itoa(int(pp[i])), privKey)
+	////}
+	////
+	////str := []string{}
+	////
+	////for i := range pp {
+	////	bytea := byte(pp[i])
+	////
+	////	str = append(str, string(bytea))
+	////}
+	////
+	////res := strings.Join(str, "")
+	////fmt.Println(res)
 	//
-	//str := []string{}
-	//
-	//for i := range pp {
-	//	bytea := byte(pp[i])
-	//
-	//	str = append(str, string(bytea))
-	//}
-	//
-	//res := strings.Join(str, "")
-	//fmt.Println(res)
-
 	blockchain := Blockchain.InitBlockchain()
 
 	blockchain.AddTransaction(tx1)
 	blockchain.AddTransaction(tx2)
 	blockchain.AddTransaction(tx3)
 	blockchain.AddTransaction(tx4)
+	blockchain.AddTransaction(tx5)
+	blockchain.AddTransaction(tx6)
+	blockchain.AddTransaction(tx7)
+	blockchain.AddTransaction(tx8)
 
 	blockchain.MineNextBlock()
 	blockchain.MineNextBlock()
@@ -70,4 +78,9 @@ func main() {
 	blockchain.MineNextBlock()
 
 	fmt.Println(&blockchain)
+
+	//for {
+	//	fmt.Println("Hello")
+	//	time.Sleep(time.Second)
+	//}
 }

@@ -37,10 +37,16 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	nonce := 0
 	merkle, _ := DataStructures.NewTree(txs)
+	merkleRoot := ""
+	if merkle != nil {
+		merkleRoot = merkle.Root.Hash
+	}
+
 	hasher := sha256.New()
 	hasher.Write([]byte(strconv.Itoa(idx + 1)))
 	hasher.Write([]byte(tStamp))
 	hasher.Write([]byte(previousHash))
+	hasher.Write([]byte(merkleRoot))
 	hasher.Write([]byte(strconv.Itoa(0)))
 	hash := hex.EncodeToString(hasher.Sum(nil))
 	isValid := ValidateHash(hash, difficulty)
@@ -51,12 +57,13 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 		hasher.Write([]byte(strconv.Itoa(idx + 1)))
 		hasher.Write([]byte(tStamp))
 		hasher.Write([]byte(previousHash))
+		hasher.Write([]byte(merkleRoot))
 		hasher.Write([]byte(strconv.Itoa(nonce)))
 		hash = hex.EncodeToString(hasher.Sum(nil))
 		isValid = ValidateHash(hash, difficulty)
 	}
 	idx++
-	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: merkle.Root.Hash}, merkleTree: merkle}
+	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: merkleRoot}, merkleTree: merkle}
 	return b
 }
 
