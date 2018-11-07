@@ -3,6 +3,7 @@ package Blockchain
 import (
 	"goBlockchain/Blocks"
 	"goBlockchain/Transactions"
+	"strconv"
 )
 
 type Blockchain struct {
@@ -14,7 +15,7 @@ type Blockchain struct {
 
 var maxSizeOfTx = 8
 
-func InitBlockchain(block Blocks.Block) Blockchain {
+func InitBlockchain() Blockchain {
 	bc := Blockchain{chain: []Blocks.Block{}, numOfblocks: 0, difficulty: 4, pendingTx: []Transactions.Transaction{}}
 	bc.chain = append(bc.chain, Blocks.MineGenesisBlock())
 	bc.numOfblocks++
@@ -40,6 +41,35 @@ func (bc Blockchain) SearchBlock(hash string) Blocks.Block {
 	return b
 }
 
+func (bc *Blockchain) AddTransaction(tx Transactions.Transaction) {
+	bc.pendingTx = append(bc.pendingTx, tx)
+}
+
 func (bc Blockchain) GetLastBlock() Blocks.Block {
 	return bc.chain[bc.numOfblocks-1]
+}
+
+func (bc *Blockchain) MineNextBlock() {
+	var transactios []Transactions.Transaction
+	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ {
+		transactios = append(transactios, bc.pendingTx[i])
+	}
+	bc.chain = append(bc.chain, Blocks.MineBlock(bc.difficulty, bc.GetLastBlock().GetHash(), transactios))
+	bc.numOfblocks++
+}
+
+func (bc *Blockchain) String() string {
+	s := ""
+	for _, l := range bc.chain {
+		s += "{\n" //fmt.Sprint(l)
+		s += "Block Id: " + strconv.Itoa(l.GetId()) + "\n"
+		s += "Block hash: " + l.GetHash() + "\n"
+		s += "Previous Hash: " + l.GetPreviousHash() + "\n"
+		s += "Nonce: " + strconv.Itoa(l.GetNonce()) + "\n"
+		s += "Timestamp: " + l.GetTimestamp() + "\n"
+		s += "Merkle Root: " + l.GetMerkleRoot() + "\n"
+		s += "\n}"
+		s += "\n"
+	}
+	return s
 }
