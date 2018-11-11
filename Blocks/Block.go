@@ -17,6 +17,7 @@ type Header struct {
 	previousHash string
 	nonce        int
 	merkleRoot   string
+	bloomFilter  string
 }
 type Block struct {
 	blockHeader Header
