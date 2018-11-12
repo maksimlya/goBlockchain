@@ -1,18 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"goBlockchain/Security"
+	"goBlockchain/Blockchain"
+	"goBlockchain/CommandInterface"
+	"goBlockchain/Transactions"
 )
 
 //CalculateHash hashes the values of a TestContent
 
 func main() {
 
-	//tx1 := Transactions.Tx("Yaki", "Tomer", 10, "Wow")
-	//tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
-	//tx3 := Transactions.Tx("Yaki", "Zona", 5, "Arnona")
-	//tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
+	tx1 := Transactions.Tx("Yaki", "Tomer", 10, "Wow")
+	tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
+	tx3 := Transactions.Tx("Yaki", "Zona", 5, "Arnona")
+	tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
 	//tx5 := Transactions.Tx("Yaki", "Momo", 10, "Wow")
 	//tx6 := Transactions.Tx("Yaki", "Popo", 10000, "Arnona")
 	//tx7 := Transactions.Tx("Yaki", "Zozo", 51, "Arnona")
@@ -58,18 +59,18 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	//blockchain := Blockchain.InitBlockchain()
+	blockchain := Blockchain.InitBlockchain()
 	//
-	//blockchain.AddTransaction(tx1)
-	//blockchain.AddTransaction(tx2)
-	//blockchain.AddTransaction(tx3)
-	//blockchain.AddTransaction(tx4)
+	blockchain.AddTransaction(tx1)
+	blockchain.AddTransaction(tx2)
+	blockchain.AddTransaction(tx3)
+	blockchain.AddTransaction(tx4)
 	//blockchain.AddTransaction(tx5)
 	//blockchain.AddTransaction(tx6)
 	//blockchain.AddTransaction(tx7)
 	//blockchain.AddTransaction(tx8)
 	//
-	//blockchain.MineNextBlock()
+	blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
@@ -82,11 +83,14 @@ func main() {
 	//	fmt.Println("Hello")
 	//	time.Sleep(time.Second)
 	//}
-	pubKey := Security.GenerateKey("A034B1566E979D3C5FE487BF3CF721FF3517570E1151DFC67D0329A54A48F9F8")
-	fmt.Println(pubKey)
-	signature := Security.Sign("muhahsada", "A034B1566E979D3C5FE487BF3CF721FF3517570E1151DFC67D0329A54A48F9F8")
+	//pubKey := Security.GenerateKey("A034B1566E979D3C5FE487BF3CF721FF3517570E1151DFC67D0329A54A48F9F8")
+	//fmt.Println(pubKey)
+	//signature := Security.Sign("muhahsada", "A034B1566E979D3C5FE487BF3CF721FF3517570E1151DFC67D0329A54A48F9F8")
+	//
+	//fmt.Println(signature)
+	//fmt.Println(Security.VerifySignature(signature, "muhahsada", pubKey))
 
-	fmt.Println(signature)
-	fmt.Println(Security.VerifySignature(signature, "muhahsada", pubKey))
+	cli := CommandInterface.CLI{blockchain}
+	cli.Run()
 
 }

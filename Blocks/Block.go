@@ -1,40 +1,41 @@
 package Blocks
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"goBlockchain/DataStructures"
 	"goBlockchain/Transactions"
+	"io"
 	"strconv"
 	"time"
 )
 
 type Header struct {
-	index        int
-	timestamp    string
-	hash         string
-	previousHash string
-	nonce        int
-	merkleRoot   string
+	Index        int
+	Timestamp    string
+	Hash         string
+	PreviousHash string
+	Nonce        int
+	MerkleRoot   string
 	bloomFilter  string
 }
 type Block struct {
-	blockHeader Header
+	BlockHeader Header
 	merkleTree  *DataStructures.MerkleTree
 }
-
-var idx = 0
 
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	hasher.Write([]byte(tStamp))
-	b := Block{blockHeader: Header{index: 0, timestamp: tStamp, hash: hex.EncodeToString(hasher.Sum(nil)), previousHash: strconv.Itoa(0), nonce: 0, merkleRoot: "Genesis Block"}, merkleTree: nil}
+	b := Block{BlockHeader: Header{Index: 0, Timestamp: tStamp, Hash: hex.EncodeToString(hasher.Sum(nil)), PreviousHash: strconv.Itoa(0), Nonce: 0, MerkleRoot: "Genesis Block"}, merkleTree: nil}
 	return b
 }
 
-func MineBlock(difficulty int, previousHash string, txs []Transactions.Transaction) Block {
+func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.Transaction) Block {
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	nonce := 0
 	merkle, _ := DataStructures.NewTree(txs)
@@ -44,7 +45,7 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 	}
 
 	hasher := sha256.New()
-	hasher.Write([]byte(strconv.Itoa(idx + 1)))
+	hasher.Write([]byte(strconv.Itoa(id)))
 	hasher.Write([]byte(tStamp))
 	hasher.Write([]byte(previousHash))
 	hasher.Write([]byte(merkleRoot))
@@ -55,7 +56,7 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 	for !isValid {
 		nonce++
 		hasher := sha256.New()
-		hasher.Write([]byte(strconv.Itoa(idx + 1)))
+		hasher.Write([]byte(strconv.Itoa(id)))
 		hasher.Write([]byte(tStamp))
 		hasher.Write([]byte(previousHash))
 		hasher.Write([]byte(merkleRoot))
@@ -63,8 +64,7 @@ func MineBlock(difficulty int, previousHash string, txs []Transactions.Transacti
 		hash = hex.EncodeToString(hasher.Sum(nil))
 		isValid = ValidateHash(hash, difficulty)
 	}
-	idx++
-	b := Block{blockHeader: Header{index: idx, timestamp: tStamp, hash: hash, previousHash: previousHash, nonce: nonce, merkleRoot: merkleRoot}, merkleTree: merkle}
+	b := Block{BlockHeader: Header{Index: id, Timestamp: tStamp, Hash: hash, PreviousHash: previousHash, Nonce: nonce, MerkleRoot: merkleRoot}, merkleTree: merkle}
 	return b
 }
 
@@ -76,28 +76,28 @@ func (b Block) GetTransactions() []Transactions.Transaction {
 }
 
 func (b Block) PrintTime() {
-	fmt.Println(b.blockHeader.timestamp)
+	fmt.Println(b.BlockHeader.Timestamp)
 }
 func (b Block) PrintIdx() {
-	fmt.Println(b.blockHeader.index)
+	fmt.Println(b.BlockHeader.Index)
 }
 func (b Block) GetId() int {
-	return b.blockHeader.index
+	return b.BlockHeader.Index
 }
 func (b Block) GetPreviousHash() string {
-	return b.blockHeader.previousHash
+	return b.BlockHeader.PreviousHash
 }
 func (b Block) GetNonce() int {
-	return b.blockHeader.nonce
+	return b.BlockHeader.Nonce
 }
 func (b Block) GetTimestamp() string {
-	return b.blockHeader.timestamp
+	return b.BlockHeader.Timestamp
 }
 func (b Block) GetMerkleRoot() string {
-	return b.blockHeader.merkleRoot
+	return b.BlockHeader.MerkleRoot
 }
 func (b Block) PrintHash() {
-	fmt.Println(b.blockHeader.hash)
+	fmt.Println(b.BlockHeader.Hash)
 }
 
 func ValidateHash(hash string, diff int) bool {
@@ -117,5 +117,57 @@ func ValidateHash(hash string, diff int) bool {
 }
 
 func (b Block) GetHash() string {
-	return b.blockHeader.hash
+	return b.BlockHeader.Hash
+}
+
+func (b *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(b)
+	if b.merkleTree != nil {
+		err = encoder.Encode(b.merkleTree.GetTransactions())
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	return result.Bytes()
+}
+
+func DeserializeBlock(d []byte) *Block {
+	var block Block
+	var txs []Transactions.Transaction
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&block)
+	err = decoder.Decode(&txs)
+
+	if err != nil && err != io.EOF {
+		fmt.Println(err)
+	}
+
+	tree, _ := DataStructures.NewTree(txs)
+
+	block.merkleTree = tree
+
+	return &block
+}
+
+func (b *Block) String() string {
+	s := ""
+	s += "{\n"
+	s += "Block Id: " + strconv.Itoa(b.GetId()) + "\n"
+	s += "Block hash: " + b.GetHash() + "\n"
+	s += "Previous Hash: " + b.GetPreviousHash() + "\n"
+	s += "Nonce: " + strconv.Itoa(b.GetNonce()) + "\n"
+	s += "Timestamp: " + b.GetTimestamp() + "\n"
+	s += "Merkle Root: " + b.GetMerkleRoot() + "\n"
+	s += "Transactions: {\n"
+	for _, tx := range b.GetTransactions() {
+		s += tx.String()
+	}
+	s += "}\n"
+	s += "};\n"
+
+	return s
 }

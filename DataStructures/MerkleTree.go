@@ -1,7 +1,9 @@
 package DataStructures
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -16,22 +18,22 @@ import (
 //	Equals(other Content) (bool, error)
 //}
 
-//MerkleTree is the container for the tree. It holds a pointer to the root of the tree,
-//a list of pointers to the leaf nodes, and the merkle root.
+//MerkleTree is the container for the tree. It holds a pointer to the Root of the tree,
+//a list of pointers to the leaf nodes, and the merkle Root.
 type MerkleTree struct {
-	Root       *Node
-	merkleRoot string
-	Leafs      []*Node
+	Root    *Node
+	MerRoot string
+	Leafs   []*Node
 }
 
-//Node represents a node, root, or leaf in the tree. It stores pointers to its immediate
+//Node represents a node, Root, or leaf in the tree. It stores pointers to its immediate
 //relationships, a hash, the content stored if it is a leaf, and other metadata.
 type Node struct {
 	Parent *Node
 	Left   *Node
 	Right  *Node
-	leaf   bool
-	dup    bool
+	Leaf   bool
+	Dup    bool
 	Hash   string
 	Tx     Transactions.Transaction
 }
@@ -50,7 +52,7 @@ func (n *Node) PrintHash() {
 }
 
 func (n *Node) verifyNode() string {
-	if n.leaf {
+	if n.Leaf {
 		return Transactions.CalcHash(n.Tx)
 	}
 	rightBytes := n.Right.verifyNode()
@@ -73,7 +75,7 @@ func (n *MerkleTree) GetTransactions() []Transactions.Transaction {
 }
 
 func (n *Node) calculateNodeHash() ([]byte, error) {
-	if n.leaf {
+	if n.Leaf {
 		return []byte(Transactions.CalcHash(n.Tx)), nil
 	}
 
@@ -87,54 +89,54 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 
 //NewTree creates a new Merkle Tree using the content cs.
 func NewTree(cs []Transactions.Transaction) (*MerkleTree, error) {
-	root, leafs, err := buildWithContent(cs)
+	Root, Leafs, err := buildWithContent(cs)
 	if err != nil {
 		return nil, err
 	}
 	t := &MerkleTree{
-		Root:       root,
-		merkleRoot: root.Hash,
-		Leafs:      leafs,
+		Root:    Root,
+		MerRoot: Root.Hash,
+		Leafs:   Leafs,
 	}
 	return t, nil
 }
 
 //buildWithContent is a helper function that for a given set of Contents, generates a
-//corresponding tree and returns the root node, a list of leaf nodes, and a possible error.
+//corresponding tree and returns the Root node, a list of leaf nodes, and a possible error.
 //Returns an error if cs contains no Contents.
 func buildWithContent(cs []Transactions.Transaction) (*Node, []*Node, error) {
 	if len(cs) == 0 {
 		return nil, nil, errors.New("error: cannot construct tree with no content")
 	}
-	var leafs []*Node
+	var Leafs []*Node
 	for _, tx := range cs {
 		hash := Transactions.CalcHash(tx)
 
-		leafs = append(leafs, &Node{
+		Leafs = append(Leafs, &Node{
 			Hash: hash,
 			Tx:   tx,
-			leaf: true,
+			Leaf: true,
 		})
 	}
-	if len(leafs)%2 == 1 {
+	if len(Leafs)%2 == 1 {
 		duplicate := &Node{
-			Hash: leafs[len(leafs)-1].Hash,
-			Tx:   leafs[len(leafs)-1].Tx,
-			leaf: true,
-			dup:  true,
+			Hash: Leafs[len(Leafs)-1].Hash,
+			Tx:   Leafs[len(Leafs)-1].Tx,
+			Leaf: true,
+			Dup:  true,
 		}
-		leafs = append(leafs, duplicate)
+		Leafs = append(Leafs, duplicate)
 	}
-	root, err := buildIntermediate(leafs)
+	Root, err := buildIntermediate(Leafs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return root, leafs, nil
+	return Root, Leafs, nil
 }
 
 //buildIntermediate is a helper function that for a given list of leaf nodes, constructs
-//the intermediate and root levels of the tree. Returns the resulting root node of the tree.
+//the intermediate and Root levels of the tree. Returns the resulting Root node of the tree.
 func buildIntermediate(nl []*Node) (*Node, error) {
 	var nodes []*Node
 	for i := 0; i < len(nl); i += 2 {
@@ -163,9 +165,9 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 	return buildIntermediate(nodes)
 }
 
-//MerkleRoot returns the unverified Merkle Root (hash of the root node) of the tree.
+//MerkleRoot returns the unverified Merkle Root (hash of the Root node) of the tree.
 func (m *MerkleTree) MerkleRoot() string {
-	return m.merkleRoot
+	return m.MerRoot
 }
 
 //RebuildTree is a helper function that will rebuild the tree reusing only the content that
@@ -175,43 +177,43 @@ func (m *MerkleTree) RebuildTree() error {
 	for _, c := range m.Leafs {
 		cs = append(cs, c.Tx)
 	}
-	root, leafs, err := buildWithContent(cs)
+	Root, Leafs, err := buildWithContent(cs)
 	if err != nil {
 		return err
 	}
-	m.Root = root
-	m.Leafs = leafs
-	m.merkleRoot = root.Hash
+	m.Root = Root
+	m.Leafs = Leafs
+	m.MerRoot = Root.Hash
 	return nil
 }
 
-//RebuildTreeWith replaces the content of the tree and does a complete rebuild; while the root of
+//RebuildTreeWith replaces the content of the tree and does a complete rebuild; while the Root of
 //the tree will be replaced the MerkleTree completely survives this operation. Returns an error if the
 //list of content cs contains no entries.
 func (m *MerkleTree) RebuildTreeWith(cs []Transactions.Transaction) error {
-	root, leafs, err := buildWithContent(cs)
+	Root, Leafs, err := buildWithContent(cs)
 	if err != nil {
 		return err
 	}
-	m.Root = root
-	m.Leafs = leafs
-	m.merkleRoot = root.Hash
+	m.Root = Root
+	m.Leafs = Leafs
+	m.MerRoot = Root.Hash
 	return nil
 }
 
 //VerifyTree verify tree validates the hashes at each level of the tree and returns true if the
-//resulting hash at the root of the tree matches the resulting root hash; returns false otherwise.
+//resulting hash at the Root of the tree matches the resulting Root hash; returns false otherwise.
 func (m *MerkleTree) VerifyTree() (bool, error) {
 	calculatedMerkleRoot := m.Root.verifyNode()
 
-	if m.merkleRoot == calculatedMerkleRoot {
+	if m.MerRoot == calculatedMerkleRoot {
 		return true, nil
 	}
 	return false, nil
 }
 
 //VerifyContent indicates whether a given content is in the tree and the hashes are valid for that content.
-//Returns true if the expected Merkle Root is equivalent to the Merkle root calculated on the critical path
+//Returns true if the expected Merkle Root is equivalent to the Merkle Root calculated on the critical path
 //for a given content. Returns true if valid and false otherwise.
 func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, error) {
 	for _, l := range m.Leafs {
@@ -229,7 +231,7 @@ func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, erro
 				if err != nil {
 					return false, err
 				}
-				if currentParent.Left.leaf && currentParent.Right.leaf {
+				if currentParent.Left.Leaf && currentParent.Right.Leaf {
 					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
 						return false, err
 					}
@@ -282,4 +284,31 @@ func (m *MerkleTree) HexString() string {
 		s += "\n"
 	}
 	return s
+}
+
+func (b *MerkleTree) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(b.GetTransactions())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return result.Bytes()
+}
+
+func Deserialize(d []byte) *MerkleTree {
+	var tree *MerkleTree
+	var tx []Transactions.Transaction
+
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&tx)
+
+	tree, _ = NewTree(tx)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return tree
 }
