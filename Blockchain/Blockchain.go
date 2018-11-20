@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"goBlockchain/Blocks"
+	"goBlockchain/Security"
 	"goBlockchain/Transactions"
 	"strconv"
 )
@@ -12,9 +13,10 @@ type Blockchain struct {
 	chain       []Blocks.Block
 	tip         []byte
 	db          *bolt.DB
-	numOfblocks int
+	numOfBlocks int
 	difficulty  int
 	pendingTx   []Transactions.Transaction
+	signatures  map[string]string
 }
 
 type BlockchainIterator struct {
@@ -37,7 +39,6 @@ func InitBlockchain() *Blockchain {
 			b, err := tx.CreateBucket([]byte("blocks"))
 			err = b.Put([]byte(genesis.GetHash()), genesis.Serialize())
 			err = b.Put([]byte("l"), []byte(genesis.GetHash()))
-			err = b.Put([]byte("id"), []byte("0"))
 			tip = []byte(genesis.GetHash())
 
 			if err != nil {
@@ -56,10 +57,14 @@ func InitBlockchain() *Blockchain {
 		fmt.Println(err)
 	}
 
-	bc := Blockchain{tip: tip, db: db, difficulty: 4}
+	bc := Blockchain{tip: tip, db: db, difficulty: 4, signatures: make(map[string]string)}
 	//bc.chain = append(bc.chain, Blocks.MineGenesisBlock())
 	//bc.numOfblocks++
 	return &bc
+}
+
+func (bc Blockchain) getSignature(key string) string {
+	return bc.signatures[key]
 }
 
 func (bc Blockchain) InsertToChain(block Blocks.Block) {
@@ -67,7 +72,7 @@ func (bc Blockchain) InsertToChain(block Blocks.Block) {
 	for i := 0; i < len(bc.pendingTx); i += maxSizeOfTx {
 		remainingTx = bc.pendingTx[i : i+maxSizeOfTx]
 		bc.chain = append(bc.chain, Blocks.MineBlock(0, bc.difficulty, bc.GetLastBlock().GetHash(), remainingTx))
-		bc.numOfblocks++
+		bc.numOfBlocks++
 	}
 }
 
@@ -91,6 +96,13 @@ func (bc *Blockchain) MineNextBlock() {
 	var transactios []Transactions.Transaction
 	amountOfTx := 0
 	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ {
+		if bc.pendingTx[i].IsNil() {
+			amountOfTx++
+			continue
+		}
+		if !Security.VerifySignature(bc.signatures[bc.pendingTx[i].GetId()], bc.pendingTx[i].GetId(), bc.pendingTx[i].GetSender()) {
+			bc.pendingTx[i] = Transactions.GetNil()
+		}
 		transactios = append(transactios, bc.pendingTx[i])
 		amountOfTx++
 	}
@@ -114,7 +126,7 @@ func (bc *Blockchain) MineNextBlock() {
 
 func (bc Blockchain) SearchBlock(hash string) Blocks.Block {
 	var b Blocks.Block
-	for i := 0; i < bc.numOfblocks; i++ {
+	for i := 0; i < bc.numOfBlocks; i++ {
 		if hash == bc.chain[i].GetHash() {
 			return bc.chain[i]
 		}
@@ -131,12 +143,16 @@ func (bc Blockchain) GetBlockById(id int) Blocks.Block {
 	return Blocks.Block{}
 }
 
-func (bc *Blockchain) AddTransaction(tx Transactions.Transaction) {
-	bc.pendingTx = append(bc.pendingTx, tx)
+func (bc *Blockchain) AddTransaction(transaction Transactions.Transaction, signature string) {
+	if !Security.VerifySignature(signature, transaction.GetId(), transaction.GetSender()) {
+		return
+	}
+	bc.signatures[transaction.GetId()] = signature
+	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 
 func (bc Blockchain) GetLastBlock() Blocks.Block {
-	return bc.chain[bc.numOfblocks-1]
+	return bc.chain[bc.numOfBlocks-1]
 }
 
 func (bc *Blockchain) Iterator() *BlockchainIterator {
@@ -166,21 +182,47 @@ func (i *BlockchainIterator) Next() *Blocks.Block {
 }
 
 func (bc *Blockchain) String() string {
+	it := bc.Iterator()
 	s := ""
-	for _, l := range bc.chain {
+	for {
+		block := it.Next()
 		s += "{\n"
-		s += "Block Id: " + strconv.Itoa(l.GetId()) + "\n"
-		s += "Block hash: " + l.GetHash() + "\n"
-		s += "Previous Hash: " + l.GetPreviousHash() + "\n"
-		s += "Nonce: " + strconv.Itoa(l.GetNonce()) + "\n"
-		s += "Timestamp: " + l.GetTimestamp() + "\n"
-		s += "Merkle Root: " + l.GetMerkleRoot() + "\n"
+		s += "Block Id: " + strconv.Itoa(block.GetId()) + "\n"
+		s += "Block hash: " + block.GetHash() + "\n"
+		s += "Previous Hash: " + block.GetPreviousHash() + "\n"
+		s += "Nonce: " + strconv.Itoa(block.GetNonce()) + "\n"
+		s += "Timestamp: " + block.GetTimestamp() + "\n"
+		s += "Merkle Root: " + block.GetMerkleRoot() + "\n"
 		s += "Transactions: {\n"
-		for _, j := range l.GetTransactions() {
+		for _, j := range block.GetTransactions() {
 			s += j.String()
 		}
 		s += "}\n"
 		s += "};\n"
+
+		if block.GetPreviousHash() == "0" {
+			break
+		}
 	}
 	return s
+}
+
+func (bc *Blockchain) GetBalanceForAddress(address string) int {
+	var amount = 0
+	it := bc.Iterator()
+	for {
+		block := it.Next()
+		for _, element := range block.GetTransactions() {
+			if element.GetReceiver() == address {
+				amount += element.GetAmount()
+			}
+			if element.GetSender() == address {
+				amount -= element.GetAmount()
+			}
+		}
+
+		if block.GetPreviousHash() == "0" {
+			return amount
+		}
+	}
 }

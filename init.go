@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"goBlockchain/Blockchain"
-	"goBlockchain/CommandInterface"
+	"goBlockchain/Security"
 	"goBlockchain/Transactions"
 )
 
@@ -10,11 +13,37 @@ import (
 
 func main() {
 
-	tx1 := Transactions.Tx("Yaki", "Tomer", 10, "Wow")
-	tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
-	tx3 := Transactions.Tx("Yaki", "Zona", 5, "Arnona")
-	tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
-	//tx5 := Transactions.Tx("Yaki", "Momo", 10, "Wow")
+	hasher := sha256.New()
+	hasher.Write([]byte("MainNodeId1"))
+	nodeHash := hex.EncodeToString(hasher.Sum(nil))
+
+	nodeKey := Security.GenerateKey(nodeHash)
+
+	tx1 := Transactions.Tx(nodeKey, "Tomer", 1, "mm")
+	tx2 := Transactions.Tx(nodeKey, "Yaki", 1, "mm")
+	tx3 := Transactions.Tx(nodeKey, "Koko", 1, "mm")
+	tx4 := Transactions.Tx(nodeKey, "Momo", 1, "mm")
+
+	sign1 := Security.Sign(tx1.GetId(), nodeHash)
+	sign2 := Security.Sign(tx2.GetId(), nodeHash)
+	sign3 := Security.Sign(tx3.GetId(), nodeHash)
+	sign4 := Security.Sign(tx4.GetId(), nodeHash)
+
+	valid1 := Security.VerifySignature(sign1, tx1.GetId(), nodeKey)
+	valid2 := Security.VerifySignature(sign2, tx2.GetId(), nodeKey)
+	valid3 := Security.VerifySignature(sign3, tx3.GetId(), nodeKey)
+	valid4 := Security.VerifySignature(sign4, tx4.GetId(), nodeKey)
+
+	fmt.Println(valid1)
+	fmt.Println(valid2)
+	fmt.Println(valid3)
+	fmt.Println(valid4)
+
+	//tx1 := Transactions.Tx("Yaki", "Tomer", 10, "Wow")
+	//tx2 := Transactions.Tx("Yaki", "Mas Hahnasa", 10000, "Arnona")
+	//tx3 := Transactions.Tx("Yaki", "Tomer", 5, "Arnona")
+	//tx4 := Transactions.Tx("Yaki", "Adi", 10, "Takataka")
+	//tx5 := Transactions.Tx("Tomer", "Momo", 10, "Wow")
 	//tx6 := Transactions.Tx("Yaki", "Popo", 10000, "Arnona")
 	//tx7 := Transactions.Tx("Yaki", "Zozo", 51, "Arnona")
 	//tx8 := Transactions.Tx("Yaki", "Koko", 10, "Takataka")
@@ -61,23 +90,19 @@ func main() {
 	//
 	blockchain := Blockchain.InitBlockchain()
 	//
-	blockchain.AddTransaction(tx1)
-	blockchain.AddTransaction(tx2)
-	blockchain.AddTransaction(tx3)
-	blockchain.AddTransaction(tx4)
-	//blockchain.AddTransaction(tx5)
-	//blockchain.AddTransaction(tx6)
-	//blockchain.AddTransaction(tx7)
-	//blockchain.AddTransaction(tx8)
+	blockchain.AddTransaction(tx1, sign1)
+	blockchain.AddTransaction(tx2, sign2)
+	blockchain.AddTransaction(tx3, sign3)
+	blockchain.AddTransaction(tx4, sign4)
 	//
+
 	blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
 	//blockchain.MineNextBlock()
-	//blockchain.MineNextBlock()
 	//
-	//fmt.Println(&blockchain)
+	fmt.Println(blockchain)
 
 	//for {
 	//	fmt.Println("Hello")
@@ -90,7 +115,9 @@ func main() {
 	//fmt.Println(signature)
 	//fmt.Println(Security.VerifySignature(signature, "muhahsada", pubKey))
 
-	cli := CommandInterface.CLI{blockchain}
-	cli.Run()
+	//	cli := CommandInterface.CLI{blockchain}
+	//	cli.Run()
+
+	//	fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
 
 }

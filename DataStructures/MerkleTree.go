@@ -66,10 +66,12 @@ func (n *Node) verifyNode() string {
 
 //calculateNodeHash is a helper function that calculates the hash of the node.
 
-func (n *MerkleTree) GetTransactions() []Transactions.Transaction {
+func (n *MerkleTree) GetTransactions() []Transactions.Transaction { // TODO - FIX BUF
 	var transactions []Transactions.Transaction
 	for _, j := range n.Leafs {
-		transactions = append(transactions, j.Tx)
+		if !j.Dup {
+			transactions = append(transactions, j.Tx)
+		}
 	}
 	return transactions
 }

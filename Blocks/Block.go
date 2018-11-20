@@ -20,7 +20,7 @@ type Header struct {
 	PreviousHash string
 	Nonce        int
 	MerkleRoot   string
-	bloomFilter  string
+	BloomFilter  string
 }
 type Block struct {
 	BlockHeader Header
@@ -31,7 +31,7 @@ func MineGenesisBlock() Block {
 	hasher := sha256.New()
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	hasher.Write([]byte(tStamp))
-	b := Block{BlockHeader: Header{Index: 0, Timestamp: tStamp, Hash: hex.EncodeToString(hasher.Sum(nil)), PreviousHash: strconv.Itoa(0), Nonce: 0, MerkleRoot: "Genesis Block"}, merkleTree: nil}
+	b := Block{BlockHeader: Header{Index: 0, Timestamp: tStamp, Hash: hex.EncodeToString(hasher.Sum(nil)), PreviousHash: strconv.Itoa(0), Nonce: 0, MerkleRoot: "Genesis Block", BloomFilter: ""}, merkleTree: nil}
 	return b
 }
 
@@ -43,12 +43,17 @@ func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.T
 	if merkle != nil {
 		merkleRoot = merkle.Root.Hash
 	}
+	bloomFilter := ""
+	if len(txs) > 0 {
+		bloomFilter = DataStructures.CreateBloom(txs)
+	}
 
 	hasher := sha256.New()
 	hasher.Write([]byte(strconv.Itoa(id)))
 	hasher.Write([]byte(tStamp))
 	hasher.Write([]byte(previousHash))
 	hasher.Write([]byte(merkleRoot))
+	hasher.Write([]byte(bloomFilter))
 	hasher.Write([]byte(strconv.Itoa(0)))
 	hash := hex.EncodeToString(hasher.Sum(nil))
 	isValid := ValidateHash(hash, difficulty)
@@ -64,7 +69,7 @@ func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.T
 		hash = hex.EncodeToString(hasher.Sum(nil))
 		isValid = ValidateHash(hash, difficulty)
 	}
-	b := Block{BlockHeader: Header{Index: id, Timestamp: tStamp, Hash: hash, PreviousHash: previousHash, Nonce: nonce, MerkleRoot: merkleRoot}, merkleTree: merkle}
+	b := Block{BlockHeader: Header{Index: id, Timestamp: tStamp, Hash: hash, PreviousHash: previousHash, Nonce: nonce, MerkleRoot: merkleRoot, BloomFilter: bloomFilter}, merkleTree: merkle}
 	return b
 }
 

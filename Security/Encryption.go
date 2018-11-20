@@ -87,8 +87,8 @@ func sign(slice int, hash string) string {
 	for i := 0; i < len(temp); i++ {
 		y += math.Pow(float64(temp[i]), float64(2))
 	}
-	aNum := int((y) / 100)
-	bNum := int((y / 2) / 100)
+	aNum := int((y) / 1000)
+	bNum := int((y / 2) / 1000)
 
 	for !isPrime(aNum) {
 		aNum++
@@ -182,8 +182,8 @@ func GenerateKey(hash string) string {
 	for i := 0; i < len(temp); i++ {
 		y += math.Pow(float64(temp[i]), float64(2))
 	}
-	aNum := int((y) / 100)
-	bNum := int((y / 2) / 100)
+	aNum := int((y) / 1000)
+	bNum := int((y / 2) / 1000)
 
 	for !isPrime(aNum) {
 		aNum++
