@@ -19,7 +19,7 @@ type Transaction struct {
 func Tx(from string, to string, amount int, tag string) Transaction {
 	timestamp := time.Now().Format("02-01-2006 15:04:05")
 	shaHasher := sha256.New()
-	shaHasher.Write([]byte(from + to + strconv.Itoa(amount) + tag + timestamp))
+	shaHasher.Write([]byte(from + to + strconv.Itoa(amount) + tag)) // TODO Validate
 	tx := Transaction{Id: hex.EncodeToString(shaHasher.Sum(nil)), From: from, To: to, Amount: amount, Tag: tag, Timestamp: timestamp}
 
 	return tx

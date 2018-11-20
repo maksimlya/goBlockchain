@@ -27,6 +27,13 @@ type Block struct {
 	merkleTree  *DataStructures.MerkleTree
 }
 
+func (b *Block) CheckBloomFilter(txHash string) bool {
+	if DataStructures.CheckExist(txHash, b.BlockHeader.BloomFilter) {
+		return true
+	}
+	return false
+}
+
 func MineGenesisBlock() Block {
 	hasher := sha256.New()
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
@@ -108,11 +115,11 @@ func (b Block) PrintHash() {
 func ValidateHash(hash string, diff int) bool {
 	checkStr := string(hash[0:diff])
 
-	bytes := []byte(checkStr)
+	hashBytes := []byte(checkStr)
 	j := 0
 
-	for i := 0; i < len(bytes); i++ {
-		if bytes[i] != 48 {
+	for i := 0; i < len(hashBytes); i++ {
+		if hashBytes[i] != 48 {
 			return false
 		}
 		j++

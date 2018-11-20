@@ -6,7 +6,9 @@ import (
 	"strconv"
 )
 
+// Public function that gets list of transactions and generates bloom filtered string based on their hashes
 func CreateBloom(txs []Transactions.Transaction) string {
+	// Storing string with size of 100 to represent bloom filter.
 	bloom := string(make([]byte, 100))
 	for i := range bloom {
 		bloom = bloom[:i] + "0"
@@ -17,42 +19,45 @@ func CreateBloom(txs []Transactions.Transaction) string {
 
 	return bloom
 }
+
+// Public function that gets message value and bloom filter string and checks whether the message belongs to the bloom filtered structure
+// Since we're storing 4 transactions in a single block, we'll be using 4 custom hash functions hash1-hash4
+func CheckExist(msg string, bloom string) bool {
+	hashes := make([]int, 4)
+
+	hashes[0] = hash1(msg)
+	hashes[1] = hash2(msg)
+	hashes[2] = hash3(msg)
+	hashes[3] = hash4(msg)
+
+	// If check for any of the 4 hashes fails, means that transaction is surely not in the block.
+	for i := range hashes {
+		if !checkPlace(bloom, hashes[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// To update bloom filter string for all 4 hash functions on a single message
 func applyBloom(msg string, bloom string) string {
 
-	bloom = ReplaceChar(bloom, Hash1(msg))
-	bloom = ReplaceChar(bloom, Hash2(msg))
-	bloom = ReplaceChar(bloom, Hash3(msg))
-	bloom = ReplaceChar(bloom, Hash4(msg))
+	bloom = replaceChar(bloom, hash1(msg))
+	bloom = replaceChar(bloom, hash2(msg))
+	bloom = replaceChar(bloom, hash3(msg))
+	bloom = replaceChar(bloom, hash4(msg))
 
 	return bloom
 }
 
-func ReplaceChar(bloom string, idx int) string {
+// Helper function to replace char in corresponding place in the bloom filter from "0" to "1"
+func replaceChar(bloom string, idx int) string {
 	bloom = bloom[:idx] + "1" + bloom[idx+1:]
 	return bloom
 }
 
-func CheckExist(msg string, bloom string) bool {
-	a := Hash1(msg)
-	b := Hash2(msg)
-	c := Hash3(msg)
-	d := Hash4(msg)
-
-	if !checkPlace(bloom, a) {
-		return false
-	}
-	if !checkPlace(bloom, b) {
-		return false
-	}
-	if !checkPlace(bloom, c) {
-		return false
-	}
-	if !checkPlace(bloom, d) {
-		return false
-	}
-	return true
-}
-
+// Helper function that checks bloom message's index in the bloom filter string for a single hash function
 func checkPlace(bloom string, idx int) bool {
 	check, _ := strconv.Atoi(string(bloom[idx]))
 
@@ -63,7 +68,8 @@ func checkPlace(bloom string, idx int) bool {
 
 }
 
-func Hash1(bloom string) int {
+// hash1-hash4 are our hash function (substract to change/improve) currently works flawlessly for testing.
+func hash1(bloom string) int {
 	value := 0
 	for i, _ := range bloom[:] {
 		k := int(bloom[i])
@@ -77,7 +83,7 @@ func Hash1(bloom string) int {
 	value += int(math.Pow(float64(bloom[60]), 2))
 	return value / 1000
 }
-func Hash2(bloom string) int {
+func hash2(bloom string) int {
 	value := 0
 	for i, _ := range bloom[:] {
 		k := int(bloom[i])
@@ -91,7 +97,7 @@ func Hash2(bloom string) int {
 	value += int(math.Pow(float64(bloom[60]), 3))
 	return value / 110000
 }
-func Hash3(bloom string) int {
+func hash3(bloom string) int {
 	value := 0
 	for i, _ := range bloom[:] {
 		k := int(bloom[i])
@@ -105,7 +111,7 @@ func Hash3(bloom string) int {
 	value += int(math.Pow(float64(bloom[55]), 3))
 	return value / 110000
 }
-func Hash4(bloom string) int {
+func hash4(bloom string) int {
 	value := 0
 	for i, _ := range bloom[:] {
 		k := int(bloom[i])

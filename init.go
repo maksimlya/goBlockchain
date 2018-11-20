@@ -90,19 +90,27 @@ func main() {
 	//
 	blockchain := Blockchain.InitBlockchain()
 	//
-	blockchain.AddTransaction(tx1, sign1)
-	blockchain.AddTransaction(tx2, sign2)
-	blockchain.AddTransaction(tx3, sign3)
-	blockchain.AddTransaction(tx4, sign4)
+	//blockchain.AddTransaction(tx1, sign1)
+	//blockchain.AddTransaction(tx2, sign2)
+	//blockchain.AddTransaction(tx3, sign3)
+	//blockchain.AddTransaction(tx4, sign4)
+	//
+	//blockchain.MineNextBlock()
+
+	//blockchain.MineNextBlock()
+	//blockchain.MineNextBlock()
+	//blockchain.MineNextBlock()
+	//blockchain.MineNextBlock()
 	//
 
-	blockchain.MineNextBlock()
-	//blockchain.MineNextBlock()
-	//blockchain.MineNextBlock()
-	//blockchain.MineNextBlock()
-	//blockchain.MineNextBlock()
-	//
-	fmt.Println(blockchain)
+	//bl := blockchain.GetLastBlock()
+
+	j := blockchain.GetSignature(tx3.Id)
+	fmt.Println(j)
+	//k := make(map[string]string)
+	//json.Unmarshal(j,&k)
+	//fmt.Println(k)
+	//fmt.Println(blockchain)
 
 	//for {
 	//	fmt.Println("Hello")
@@ -118,6 +126,6 @@ func main() {
 	//	cli := CommandInterface.CLI{blockchain}
 	//	cli.Run()
 
-	//	fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
+	fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
 
 }

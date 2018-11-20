@@ -37,6 +37,8 @@ func InitBlockchain() *Blockchain {
 
 			genesis := Blocks.MineGenesisBlock()
 			b, err := tx.CreateBucket([]byte("blocks"))
+			s, err := tx.CreateBucket([]byte("signatures"))
+			err = s.Put([]byte("Genesis"), []byte("0"))
 			err = b.Put([]byte(genesis.GetHash()), genesis.Serialize())
 			err = b.Put([]byte("l"), []byte(genesis.GetHash()))
 			tip = []byte(genesis.GetHash())
@@ -58,13 +60,26 @@ func InitBlockchain() *Blockchain {
 	}
 
 	bc := Blockchain{tip: tip, db: db, difficulty: 4, signatures: make(map[string]string)}
-	//bc.chain = append(bc.chain, Blocks.MineGenesisBlock())
-	//bc.numOfblocks++
 	return &bc
 }
 
 func (bc Blockchain) getSignature(key string) string {
 	return bc.signatures[key]
+}
+
+func (bc Blockchain) GetSignature(txid string) string {
+	sigData := ""
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("signatures"))
+		sigData = string(s.Get([]byte(txid)))
+
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return sigData
 }
 
 func (bc Blockchain) InsertToChain(block Blocks.Block) {
@@ -111,7 +126,14 @@ func (bc *Blockchain) MineNextBlock() {
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
+		s := tx.Bucket([]byte("signatures"))
 		err := b.Put([]byte(newBlock.GetHash()), newBlock.Serialize())
+		for i := range transactios {
+			err := s.Put([]byte(transactios[i].GetId()), []byte(bc.signatures[transactios[i].GetId()]))
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
 		err = b.Put([]byte("l"), []byte(newBlock.GetHash()))
 		bc.tip = []byte(newBlock.GetHash())
 
@@ -151,8 +173,9 @@ func (bc *Blockchain) AddTransaction(transaction Transactions.Transaction, signa
 	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 
-func (bc Blockchain) GetLastBlock() Blocks.Block {
-	return bc.chain[bc.numOfBlocks-1]
+func (bc *Blockchain) GetLastBlock() *Blocks.Block {
+	it := bc.Iterator()
+	return it.Next()
 }
 
 func (bc *Blockchain) Iterator() *BlockchainIterator {
@@ -210,19 +233,36 @@ func (bc *Blockchain) String() string {
 func (bc *Blockchain) GetBalanceForAddress(address string) int {
 	var amount = 0
 	it := bc.Iterator()
-	for {
-		block := it.Next()
-		for _, element := range block.GetTransactions() {
-			if element.GetReceiver() == address {
-				amount += element.GetAmount()
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		s := tx.Bucket([]byte("signatures"))
+
+		for {
+			block := it.Next()
+			for _, element := range block.GetTransactions() {
+				signature := string(s.Get([]byte(element.GetId())))
+				if element.GetReceiver() == address {
+					if Security.VerifySignature(signature, element.GetId(), element.GetSender()) {
+						amount += element.GetAmount()
+					}
+				}
+				if element.GetSender() == address {
+					if Security.VerifySignature(signature, element.GetId(), element.GetSender()) {
+						amount -= element.GetAmount()
+					}
+				}
 			}
-			if element.GetSender() == address {
-				amount -= element.GetAmount()
+
+			if block.GetPreviousHash() == "0" {
+				break
 			}
 		}
 
-		if block.GetPreviousHash() == "0" {
-			return amount
-		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	return amount
+
 }
