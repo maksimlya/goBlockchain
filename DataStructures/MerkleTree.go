@@ -10,13 +10,15 @@ import (
 	"goBlockchain/Transactions"
 )
 
-//Content represents the data that is stored and verified by the tree. A type that
-//implements this interface can be used as an item in the tree.
+// Enum representation in golang
+type Offset int
 
-//type Content interface {
-//	CalculateHash() ([]byte, error)
-//	Equals(other Content) (bool, error)
-//}
+// Each Node stores it's offset ( aka if it allocated right or left-side of the parent )
+const (
+	Roof  Offset = 0
+	Right Offset = 1
+	Left  Offset = 2
+)
 
 //MerkleTree is the container for the tree. It holds a pointer to the Root of the tree,
 //a list of pointers to the leaf nodes, and the merkle Root.
@@ -26,12 +28,21 @@ type MerkleTree struct {
 	Leafs   []*Node
 }
 
+// This struct will be used to send to SPV clients ( The blockchain nodes that contain only block headers )
+// In order that they will be able to re-build the merkle root and verify that transaction belongs to the block.
+type ProofElement struct {
+	Hash  string
+	Place Offset
+}
+
 //Node represents a node, Root, or leaf in the tree. It stores pointers to its immediate
 //relationships, a hash, the content stored if it is a leaf, and other metadata.
+// Place will store it's position related to the parent (Left or Right) OR Roof value only if the Node is root of the whole tree.
 type Node struct {
 	Parent *Node
 	Left   *Node
 	Right  *Node
+	Place  Offset
 	Leaf   bool
 	Dup    bool
 	Hash   string
@@ -112,7 +123,7 @@ func buildWithContent(cs []Transactions.Transaction) (*Node, []*Node, error) {
 	}
 	var Leafs []*Node
 	for _, tx := range cs {
-		hash := Transactions.CalcHash(tx)
+		hash := tx.GetId()
 
 		Leafs = append(Leafs, &Node{
 			Hash: hash,
@@ -147,6 +158,8 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 		if i+1 == len(nl) {
 			right = i
 		}
+		nl[left].Place = Left
+		nl[right].Place = Right
 		chash := (nl[left].Hash + nl[right].Hash)
 
 		if _, err := h.Write([]byte(chash)); err != nil {
@@ -214,53 +227,99 @@ func (m *MerkleTree) VerifyTree() (bool, error) {
 	return false, nil
 }
 
-//VerifyContent indicates whether a given content is in the tree and the hashes are valid for that content.
-//Returns true if the expected Merkle Root is equivalent to the Merkle Root calculated on the critical path
-//for a given content. Returns true if valid and false otherwise.
-func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, error) {
-	for _, l := range m.Leafs {
-		ok := Transactions.Equals(l.Tx, content)
-		if ok {
-			currentParent := l.Parent
-			for currentParent != nil {
-				h := sha256.New()
-				rightBytes, err := currentParent.Right.calculateNodeHash()
-				if err != nil {
-					return false, err
-				}
-
-				leftBytes, err := currentParent.Left.calculateNodeHash()
-				if err != nil {
-					return false, err
-				}
-				if currentParent.Left.Leaf && currentParent.Right.Leaf {
-					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
-						return false, err
-					}
-					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
-						return false, nil
-					}
-					currentParent = currentParent.Parent
-				} else {
-					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
-						return false, err
-					}
-					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
-						return false, nil
-					}
-					currentParent = currentParent.Parent
+// Function that gets Transaction and returns proof element which later can be used to re-build the merkle root
+// Used to verify that given transaction belongs to the merkle tree, aka is mined into the block.
+// Returns nil if the transaction is not in the tree.
+func (m *MerkleTree) GetProofElements(tx Transactions.Transaction) []ProofElement {
+	var proofs []ProofElement
+	var tmpNode *Node
+	for _, leaf := range m.Leafs {
+		if tx.GetId() == leaf.Hash {
+			tmpNode = leaf
+			for tmpNode.Place != Roof {
+				switch tmpNode.Place {
+				case Right:
+					proofs = append(proofs, ProofElement{Hash: tmpNode.Parent.Left.Hash, Place: Left})
+					tmpNode = tmpNode.Parent
+					break
+				case Left:
+					proofs = append(proofs, ProofElement{Hash: tmpNode.Parent.Right.Hash, Place: Right})
+					tmpNode = tmpNode.Parent
+					break
 				}
 			}
-			return true, nil
+			break
 		}
 	}
-	return false, nil
+	return proofs
 }
+
+// Function that receives transaction, proof elements and merkle root, and tries to re-build
+// The merkle root based on the given proof elements.
+// Returns true if the result equals to the assumed merkle root.
+func VerifyContent(tx Transactions.Transaction, proofs []ProofElement, merkleRoot string) bool {
+	result := tx.GetId()
+
+	for i := range proofs {
+		hasher := sha256.New()
+		if proofs[i].Place == Right {
+			hasher.Write([]byte(result + proofs[i].Hash))
+			result = hex.EncodeToString(hasher.Sum(nil))
+		} else {
+			hasher.Write([]byte(proofs[i].Hash + result))
+			result = hex.EncodeToString(hasher.Sum(nil))
+		}
+	}
+	return merkleRoot == result
+}
+
+////VerifyContent indicates whether a given content is in the tree and the hashes are valid for that content.
+////Returns true if the expected Merkle Root is equivalent to the Merkle Root calculated on the critical path
+////for a given content. Returns true if valid and false otherwise.
+//func (m *MerkleTree) VerifyContent(content Transactions.Transaction) (bool, error) {
+//	for _, l := range m.Leafs {
+//		ok := Transactions.Equals(l.Tx, content)
+//		if ok {
+//			currentParent := l.Parent
+//			for currentParent != nil {
+//				h := sha256.New()
+//				rightBytes, err := currentParent.Right.calculateNodeHash()
+//				if err != nil {
+//					return false, err
+//				}
+//
+//				leftBytes, err := currentParent.Left.calculateNodeHash()
+//				if err != nil {
+//					return false, err
+//				}
+//				if currentParent.Left.Leaf && currentParent.Right.Leaf {
+//					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
+//						return false, err
+//					}
+//					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
+//						return false, nil
+//					}
+//					currentParent = currentParent.Parent
+//				} else {
+//					if _, err := h.Write(append(leftBytes, rightBytes...)); err != nil {
+//						return false, err
+//					}
+//					if hex.EncodeToString(h.Sum(nil)) == currentParent.Hash {
+//						return false, nil
+//					}
+//					currentParent = currentParent.Parent
+//				}
+//			}
+//			return true, nil
+//		}
+//	}
+//	return false, nil
+//}
 
 func (m *MerkleTree) GetTransactionsWithTag(tag string) []Transactions.Transaction {
 	var result []Transactions.Transaction
 	for _, l := range m.Leafs {
-		if l.Tx.GetTag() == tag {
+		if l.Tx.GetTag() == tag && !l.Dup {
 			result = append(result, l.Tx)
 		}
 	}

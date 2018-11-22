@@ -14,7 +14,7 @@ func CreateBloom(txs []Transactions.Transaction) string {
 		bloom = bloom[:i] + "0"
 	}
 	for i := range txs {
-		bloom = applyBloom(txs[i].GetId(), bloom)
+		bloom = ApplyBloom(txs[i].GetId(), bloom)
 	}
 
 	return bloom
@@ -36,12 +36,11 @@ func CheckExist(msg string, bloom string) bool {
 			return false
 		}
 	}
-
 	return true
 }
 
 // To update bloom filter string for all 4 hash functions on a single message
-func applyBloom(msg string, bloom string) string {
+func ApplyBloom(msg string, bloom string) string {
 
 	bloom = replaceChar(bloom, hash1(msg))
 	bloom = replaceChar(bloom, hash2(msg))
@@ -49,6 +48,18 @@ func applyBloom(msg string, bloom string) string {
 	bloom = replaceChar(bloom, hash4(msg))
 
 	return bloom
+}
+
+func UnionBloom(bloom1 string, bloom2 string) string {
+	result := ""
+	for i := range bloom1 {
+		if bloom1[i] != bloom2[i] {
+			result += "1"
+		} else {
+			result += string(bloom1[i])
+		}
+	}
+	return result
 }
 
 // Helper function to replace char in corresponding place in the bloom filter from "0" to "1"

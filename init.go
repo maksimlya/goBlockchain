@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/Blockchain"
+	"goBlockchain/DataStructures"
 	"goBlockchain/Security"
 	"goBlockchain/Transactions"
 )
@@ -48,14 +48,14 @@ func main() {
 	//tx7 := Transactions.Tx("Yaki", "Zozo", 51, "Arnona")
 	//tx8 := Transactions.Tx("Yaki", "Koko", 10, "Takataka")
 	//
-	//var list []Transactions.Transaction
+	var list []Transactions.Transaction
 	//
-	//list = append(list, tx1)
-	//list = append(list, tx2)
-	//list = append(list, tx3)
+	list = append(list, tx1)
+	list = append(list, tx2)
+	list = append(list, tx3)
 	//list = append(list, tx4)
 	//
-	////merkle, _ := DataStructures.NewTree(list)
+	merkle, _ := DataStructures.NewTree(list)
 	//
 	////	merkle.Root.PrintHash()
 	//
@@ -88,7 +88,7 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	blockchain := Blockchain.InitBlockchain()
+	//blockchain := Blockchain.InitBlockchain()
 	//
 	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
@@ -105,8 +105,8 @@ func main() {
 
 	//bl := blockchain.GetLastBlock()
 
-	j := blockchain.GetSignature(tx3.Id)
-	fmt.Println(j)
+	//j := blockchain.GetSignature(tx3.Id)
+	//	fmt.Println(j)
 	//k := make(map[string]string)
 	//json.Unmarshal(j,&k)
 	//fmt.Println(k)
@@ -126,6 +126,12 @@ func main() {
 	//	cli := CommandInterface.CLI{blockchain}
 	//	cli.Run()
 
-	fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
+	//fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
+
+	k := merkle.GetProofElements(tx3)
+
+	test := DataStructures.VerifyContent(tx3, k, merkle.MerRoot)
+
+	fmt.Println(test)
 
 }
