@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/DataStructures"
+	"goBlockchain/Blockchain"
 	"goBlockchain/Security"
 	"goBlockchain/Transactions"
 )
@@ -48,14 +48,14 @@ func main() {
 	//tx7 := Transactions.Tx("Yaki", "Zozo", 51, "Arnona")
 	//tx8 := Transactions.Tx("Yaki", "Koko", 10, "Takataka")
 	//
-	var list []Transactions.Transaction
-	//
-	list = append(list, tx1)
-	list = append(list, tx2)
-	list = append(list, tx3)
-	//list = append(list, tx4)
-	//
-	merkle, _ := DataStructures.NewTree(list)
+	//var list []Transactions.Transaction
+	////
+	//list = append(list, tx1)
+	//list = append(list, tx2)
+	//list = append(list, tx3)
+	////list = append(list, tx4)
+	////
+	//merkle, _ := DataStructures.NewTree(list)
 	//
 	////	merkle.Root.PrintHash()
 	//
@@ -89,7 +89,7 @@ func main() {
 	////fmt.Println(res)
 	//
 	//blockchain := Blockchain.InitBlockchain()
-	//
+	////
 	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
 	//blockchain.AddTransaction(tx3, sign3)
@@ -128,10 +128,16 @@ func main() {
 
 	//fmt.Println(blockchain.GetBalanceForAddress("Tomer"))
 
-	k := merkle.GetProofElements(tx3)
+	//k := merkle.GetProofElements(tx2)
+	//
+	//test := DataStructures.VerifyContent(tx3, k, merkle.MerRoot)
+	//
+	//fmt.Println(test)
+	//fmt.Println(blockchain.ValidateChain())
+	blockchain := Blockchain.InitBlockchain()
+	fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
+	go func() {
 
-	test := DataStructures.VerifyContent(tx3, k, merkle.MerRoot)
-
-	fmt.Println(test)
-
+	}()
+	//log.Fatal(WebServer.Run())
 }

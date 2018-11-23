@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"goBlockchain/Transactions"
+	"math"
 )
 
 // Enum representation in golang
 type Offset int
-
 // Each Node stores it's offset ( aka if it allocated right or left-side of the parent )
 const (
 	Roof  Offset = 0
@@ -51,7 +51,6 @@ type Node struct {
 
 //verifyNode walks down the tree until hitting a leaf, calculating the hash at each level
 //and returning the resulting hash of Node n.
-
 func (n *Node) PrintHash() {
 	if n.Right != nil {
 		n.Right.PrintHash()
@@ -60,6 +59,23 @@ func (n *Node) PrintHash() {
 		n.Left.PrintHash()
 	}
 	fmt.Println(n.Hash)
+}
+
+func (t *MerkleTree) PrintLevels() map[int][]string{
+	var controlNode = t.Root
+	var levels = int(math.Log2(float64(len(t.Leafs))))
+	var stages = make(map[int][]string,levels)
+	for i:= 0 ; i <= levels ; i ++{
+		stages[i] = append(stages[i],controlNode.)
+		stages[i] = append(stages[i],controlNode.Right.Hash)
+
+
+
+	}
+	for {
+
+	}
+return stages
 }
 
 func (n *Node) verifyNode() string {
@@ -157,6 +173,7 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 		var left, right int = i, i + 1
 		if i+1 == len(nl) {
 			right = i
+			""""""""""""""qqqqq
 		}
 		nl[left].Place = Left
 		nl[right].Place = Right

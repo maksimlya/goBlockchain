@@ -12,6 +12,7 @@ import (
 type Blockchain struct {
 	chain       []Blocks.Block
 	tip         []byte
+	lastId      int
 	db          *bolt.DB
 	numOfBlocks int
 	difficulty  int
@@ -23,11 +24,17 @@ type BlockchainIterator struct {
 	currentHash []byte
 	db          *bolt.DB
 }
+type BlockchainForwardIterator struct {
+	currentId []byte
+	db        *bolt.DB
+}
 
 var maxSizeOfTx = 4
 
 func InitBlockchain() *Blockchain {
 	var tip []byte
+	var lastId int
+
 	db, err := bolt.Open("Blockchain.db", 0600, nil)
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -41,7 +48,9 @@ func InitBlockchain() *Blockchain {
 			err = s.Put([]byte("Genesis"), []byte("0"))
 			err = b.Put([]byte(genesis.GetHash()), genesis.Serialize())
 			err = b.Put([]byte("l"), []byte(genesis.GetHash()))
+			err = b.Put([]byte("0"), []byte(genesis.GetHash()))
 			tip = []byte(genesis.GetHash())
+			lastId = 0
 
 			if err != nil {
 				fmt.Println(err)
@@ -49,7 +58,7 @@ func InitBlockchain() *Blockchain {
 
 		} else {
 			tip = b.Get([]byte("l"))
-
+			lastId = Blocks.DeserializeBlock(b.Get(tip)).GetId()
 		}
 
 		return nil
@@ -59,8 +68,10 @@ func InitBlockchain() *Blockchain {
 		fmt.Println(err)
 	}
 
-	bc := Blockchain{tip: tip, db: db, difficulty: 4, signatures: make(map[string]string)}
+	bc := Blockchain{lastId: lastId, tip: tip, db: db, difficulty: 4, signatures: make(map[string]string)}
+	db.Close()
 	return &bc
+
 }
 
 func (bc Blockchain) getSignature(key string) string {
@@ -69,6 +80,7 @@ func (bc Blockchain) getSignature(key string) string {
 
 func (bc Blockchain) GetSignature(txid string) string {
 	sigData := ""
+	bc.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		s := tx.Bucket([]byte("signatures"))
 		sigData = string(s.Get([]byte(txid)))
@@ -78,7 +90,7 @@ func (bc Blockchain) GetSignature(txid string) string {
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	bc.db.Close()
 	return sigData
 }
 
@@ -94,6 +106,7 @@ func (bc Blockchain) InsertToChain(block Blocks.Block) {
 func (bc *Blockchain) MineNextBlock() {
 	var lastHash []byte
 	var lastId int
+	bc.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
 		lastHash = b.Get([]byte("l"))
@@ -128,6 +141,7 @@ func (bc *Blockchain) MineNextBlock() {
 		b := tx.Bucket([]byte("blocks"))
 		s := tx.Bucket([]byte("signatures"))
 		err := b.Put([]byte(newBlock.GetHash()), newBlock.Serialize())
+		err = b.Put([]byte(strconv.Itoa(newBlock.GetId())), []byte(newBlock.GetHash()))
 		for i := range transactios {
 			err := s.Put([]byte(transactios[i].GetId()), []byte(bc.signatures[transactios[i].GetId()]))
 			if err != nil {
@@ -143,7 +157,7 @@ func (bc *Blockchain) MineNextBlock() {
 
 		return nil
 	})
-
+	bc.db.Close()
 }
 
 func (bc Blockchain) SearchBlock(hash string) Blocks.Block {
@@ -156,13 +170,23 @@ func (bc Blockchain) SearchBlock(hash string) Blocks.Block {
 	return b
 }
 
-func (bc Blockchain) GetBlockById(id int) Blocks.Block {
-	for i := 0; i < len(bc.chain); i++ {
-		if bc.chain[i].GetId() == id {
-			return bc.chain[i]
-		}
+func (bc Blockchain) GetBlockById(id int) *Blocks.Block {
+	bc.db, _ = bolt.Open("Blockchain.db", 0600, nil)
+	var block *Blocks.Block
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("blocks"))
+		blockHash := b.Get([]byte(strconv.Itoa(id)))
+		encodedBlock := b.Get(blockHash)
+		block = Blocks.DeserializeBlock(encodedBlock)
+
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
 	}
-	return Blocks.Block{}
+
+	bc.db.Close()
+	return block
 }
 
 func (bc *Blockchain) AddTransaction(transaction Transactions.Transaction, signature string) {
@@ -183,10 +207,15 @@ func (bc *Blockchain) Iterator() *BlockchainIterator {
 
 	return bci
 }
+func (bc *Blockchain) ForwardIterator() *BlockchainForwardIterator {
+	bci := &BlockchainForwardIterator{[]byte("0"), bc.db}
+
+	return bci
+}
 
 func (i *BlockchainIterator) Next() *Blocks.Block {
 	var block *Blocks.Block
-
+	i.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	err := i.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
 		encodedBlock := b.Get(i.currentHash)
@@ -200,37 +229,117 @@ func (i *BlockchainIterator) Next() *Blocks.Block {
 	if err != nil {
 		fmt.Println(err)
 	}
+	i.db.Close()
+	return block
+}
+func (i *BlockchainForwardIterator) Next() *Blocks.Block {
+	var block *Blocks.Block
+	i.db, _ = bolt.Open("Blockchain.db", 0600, nil)
+	err := i.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("blocks"))
+		blockHash := b.Get(i.currentId)
+		encodedBlock := b.Get(blockHash)
+		block = Blocks.DeserializeBlock(encodedBlock)
 
+		return nil
+	})
+
+	i.currentId = []byte(strconv.Itoa(block.GetId() + 1))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	i.db.Close()
 	return block
 }
 
-func (bc *Blockchain) String() string {
+//func (bc *Blockchain) String() string {
+//	it := bc.Iterator()
+//	s := ""
+//	for {
+//		block := it.Next()
+//		s += "{\n"
+//		s += "Block Id: " + strconv.Itoa(block.GetId()) + "\n"
+//		s += "Block hash: " + block.GetHash() + "\n"
+//		s += "Previous Hash: " + block.GetPreviousHash() + "\n"
+//		s += "Nonce: " + strconv.Itoa(block.GetNonce()) + "\n"
+//		s += "Timestamp: " + block.GetTimestamp() + "\n"
+//		s += "Merkle Root: " + block.GetMerkleRoot() + "\n"
+//		s += "Transactions: {\n"
+//		for _, j := range block.GetTransactions() {
+//			s += j.String()
+//		}
+//		s += "}\n"
+//		s += "};\n"
+//
+//		if block.GetPreviousHash() == "0" {
+//			break
+//		}
+//	}
+//	return s
+//}
+
+func (bc *Blockchain) ValidateChain() bool {
 	it := bc.Iterator()
-	s := ""
+	previousIterator := bc.Iterator()
+	previousIterator.Next()
+
 	for {
 		block := it.Next()
-		s += "{\n"
-		s += "Block Id: " + strconv.Itoa(block.GetId()) + "\n"
-		s += "Block hash: " + block.GetHash() + "\n"
-		s += "Previous Hash: " + block.GetPreviousHash() + "\n"
-		s += "Nonce: " + strconv.Itoa(block.GetNonce()) + "\n"
-		s += "Timestamp: " + block.GetTimestamp() + "\n"
-		s += "Merkle Root: " + block.GetMerkleRoot() + "\n"
-		s += "Transactions: {\n"
-		for _, j := range block.GetTransactions() {
-			s += j.String()
-		}
-		s += "}\n"
-		s += "};\n"
 
+		if block.GetId() == 0 {
+			return true
+		}
+
+		prevBlock := previousIterator.Next()
+
+		if block.GetId() != prevBlock.GetId()+1 {
+			return false
+		}
+		if block.GetPreviousHash() != prevBlock.GetHash() {
+			return false
+		}
+
+		if !block.ValidateBlock() {
+			return false
+		}
 		if block.GetPreviousHash() == "0" {
 			break
 		}
 	}
-	return s
+	return true
 }
 
+func (bc *Blockchain) TraverseBlockchain() []*Blocks.Block {
+	var blocks []*Blocks.Block
+	it := bc.Iterator()
+	for {
+		block := it.Next()
+		blocks = append(blocks, block)
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	return blocks
+}
+func (bc *Blockchain) TraverseForwardBlockchain() []*Blocks.Block {
+
+	var blocks []*Blocks.Block
+	it := bc.ForwardIterator()
+	for {
+		block := it.Next()
+		blocks = append(blocks, block)
+
+		if block.GetId() == bc.lastId {
+			break
+		}
+	}
+	return blocks
+}
+
+// TODO - rework function for polls use ( aka check balance for a given poll tag )
 func (bc *Blockchain) GetBalanceForAddress(address string) int {
+	bc.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	var amount = 0
 	it := bc.Iterator()
 	err := bc.db.View(func(tx *bolt.Tx) error {
@@ -262,7 +371,7 @@ func (bc *Blockchain) GetBalanceForAddress(address string) int {
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	bc.db.Close()
 	return amount
 
 }

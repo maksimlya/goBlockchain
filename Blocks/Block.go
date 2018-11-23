@@ -42,6 +42,10 @@ func MineGenesisBlock() Block {
 	return b
 }
 
+func (b *Block) GetMerkleTree() *DataStructures.MerkleTree {
+	return b.merkleTree
+}
+
 func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.Transaction) Block {
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	nonce := 0
@@ -110,6 +114,22 @@ func (b Block) GetMerkleRoot() string {
 }
 func (b Block) PrintHash() {
 	fmt.Println(b.BlockHeader.Hash)
+}
+
+func (b *Block) ValidateBlock() bool {
+	hasher := sha256.New()
+	hasher.Write([]byte(strconv.Itoa(b.GetId())))
+	hasher.Write([]byte(b.GetTimestamp()))
+	hasher.Write([]byte(b.GetPreviousHash()))
+	hasher.Write([]byte(b.GetMerkleRoot()))
+	hasher.Write([]byte(strconv.Itoa(b.GetNonce())))
+
+	if b.GetHash() == hex.EncodeToString(hasher.Sum(nil)) {
+		return true
+	} else if b.GetId() == 0 {
+		return true
+	}
+	return false
 }
 
 func ValidateHash(hash string, diff int) bool {
