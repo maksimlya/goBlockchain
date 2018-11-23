@@ -3,7 +3,7 @@ package blockchain
 import (
 	"fmt"
 	"goBlockchain/imports/bolt"
-
+	"goBlockchain/database"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"strconv"
@@ -13,7 +13,7 @@ type Blockchain struct {
 	chain       []Block
 	tip         []byte
 	lastId      int
-	db          database
+	db          database.
 	numOfBlocks int
 	difficulty  int
 	pendingTx   []transactions.Transaction
