@@ -1,13 +1,13 @@
-package DataStructures
+package datastructures
 
 import (
-	"goBlockchain/Transactions"
+	"goBlockchain/transactions"
 	"math"
 	"strconv"
 )
 
 // Public function that gets list of transactions and generates bloom filtered string based on their hashes
-func CreateBloom(txs []Transactions.Transaction) string {
+func CreateBloom(txs []transactions.Transaction) string {
 	// Storing string with size of 100 to represent bloom filter.
 	bloom := string(make([]byte, 100))
 	for i := range bloom {

@@ -1,4 +1,4 @@
-package Blocks
+package blockchain
 
 import (
 	"bytes"
@@ -6,8 +6,8 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/DataStructures"
-	"goBlockchain/Transactions"
+	"goBlockchain/datastructures"
+	"goBlockchain/transactions"
 	"io"
 	"strconv"
 	"time"
@@ -24,11 +24,11 @@ type Header struct {
 }
 type Block struct {
 	BlockHeader Header
-	merkleTree  *DataStructures.MerkleTree
+	merkleTree  *datastructures.MerkleTree
 }
 
 func (b *Block) CheckBloomFilter(txHash string) bool {
-	if DataStructures.CheckExist(txHash, b.BlockHeader.BloomFilter) {
+	if datastructures.CheckExist(txHash, b.BlockHeader.BloomFilter) {
 		return true
 	}
 	return false
@@ -42,21 +42,21 @@ func MineGenesisBlock() Block {
 	return b
 }
 
-func (b *Block) GetMerkleTree() *DataStructures.MerkleTree {
+func (b *Block) GetMerkleTree() *datastructures.MerkleTree {
 	return b.merkleTree
 }
 
-func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.Transaction) Block {
+func MineBlock(id int, difficulty int, previousHash string, txs []transactions.Transaction) Block {
 	tStamp := time.Now().Format("02-01-2006 15:04:05")
 	nonce := 0
-	merkle, _ := DataStructures.NewTree(txs)
+	merkle, _ := datastructures.NewTree(txs)
 	merkleRoot := ""
 	if merkle != nil {
 		merkleRoot = merkle.Root.Hash
 	}
 	bloomFilter := ""
 	if len(txs) > 0 {
-		bloomFilter = DataStructures.CreateBloom(txs)
+		bloomFilter = datastructures.CreateBloom(txs)
 	}
 
 	hasher := sha256.New()
@@ -84,7 +84,7 @@ func MineBlock(id int, difficulty int, previousHash string, txs []Transactions.T
 	return b
 }
 
-func (b Block) GetTransactions() []Transactions.Transaction {
+func (b Block) GetTransactions() []transactions.Transaction {
 	if b.merkleTree != nil {
 		return b.merkleTree.GetTransactions()
 	}
@@ -169,7 +169,7 @@ func (b *Block) Serialize() []byte {
 
 func DeserializeBlock(d []byte) *Block {
 	var block Block
-	var txs []Transactions.Transaction
+	var txs []transactions.Transaction
 	decoder := gob.NewDecoder(bytes.NewReader(d))
 	err := decoder.Decode(&block)
 	err = decoder.Decode(&txs)
@@ -178,7 +178,7 @@ func DeserializeBlock(d []byte) *Block {
 		fmt.Println(err)
 	}
 
-	tree, _ := DataStructures.NewTree(txs)
+	tree, _ := datastructures.NewTree(txs)
 
 	block.merkleTree = tree
 
@@ -194,7 +194,7 @@ func (b *Block) String() string {
 	s += "Nonce: " + strconv.Itoa(b.GetNonce()) + "\n"
 	s += "Timestamp: " + b.GetTimestamp() + "\n"
 	s += "Merkle Root: " + b.GetMerkleRoot() + "\n"
-	s += "Transactions: {\n"
+	s += "transactions: {\n"
 	for _, tx := range b.GetTransactions() {
 		s += tx.String()
 	}

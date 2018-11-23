@@ -1,11 +1,11 @@
-package WebServer
+package webserver
 
 import (
 	"encoding/json"
-	"goBlockchain/Blockchain"
-	"goBlockchain/Transactions"
+	"goBlockchain/blockchain"
+	"goBlockchain/transactions"
 
-	//"goBlockchain/Blockchain"
+	//"goBlockchain/blockchain"
 	"io"
 	"log"
 	"net/http"
@@ -44,7 +44,7 @@ func makeMuxRouter() http.Handler {
 }
 
 func handleGetBlockchain(w http.ResponseWriter, r *http.Request) {
-	blockchain := Blockchain.InitBlockchain()
+	blockchain := blockchain.InitBlockchain()
 	blocks := blockchain.TraverseForwardBlockchain()
 	bytes, err := json.MarshalIndent(blocks, "", "  ")
 	if err != nil {
@@ -55,7 +55,7 @@ func handleGetBlockchain(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetMerkle(w http.ResponseWriter, r *http.Request) {
-	blockchain := Blockchain.InitBlockchain()
+	blockchain := blockchain.InitBlockchain()
 	block1 := blockchain.GetBlockById(1)
 
 	var v = make(map[string]map[int][]string, len(block1.GetMerkleTree().PrintLevels()))
@@ -71,7 +71,7 @@ func handleGetMerkle(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetSignatures(w http.ResponseWriter, r *http.Request) {
-	blockchain := Blockchain.InitBlockchain()
+	blockchain := blockchain.InitBlockchain()
 	sigs := blockchain.GetAllSignatures()
 	bytes, err := json.MarshalIndent(sigs, "", "  ")
 	if err != nil {
@@ -82,9 +82,9 @@ func handleGetSignatures(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetTransactions(w http.ResponseWriter, r *http.Request) {
-	blockchain := Blockchain.InitBlockchain()
+	blockchain := blockchain.InitBlockchain()
 	blocks := blockchain.TraverseForwardBlockchain()
-	var txs []Transactions.Transaction
+	var txs []transactions.Transaction
 	for i := range blocks {
 		txs = append(txs, blocks[i].GetTransactions()...)
 	}
@@ -106,15 +106,15 @@ func handleGetTransactions(w http.ResponseWriter, r *http.Request) {
 //	}
 //	defer r.Body.Close()
 //
-//	newBlock, err := generateBlock(Blockchain[len(Blockchain)-1], m.BPM)
+//	newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
 //	if err != nil {
 //		respondWithJSON(w, r, http.StatusInternalServerError, m)
 //		return
 //	}
-//	if isBlockValid(newBlock, Blockchain[len(Blockchain)-1]) {
-//		newBlockchain := append(Blockchain, newBlock)
+//	if isBlockValid(newBlock, blockchain[len(blockchain)-1]) {
+//		newBlockchain := append(blockchain, newBlock)
 //		replaceChain(newBlockchain)
-//		spew.Dump(Blockchain)
+//		spew.Dump(blockchain)
 //	}
 //
 //	respondWithJSON(w, r, http.StatusCreated, newBlock)

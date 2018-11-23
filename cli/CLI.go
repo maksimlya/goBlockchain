@@ -1,14 +1,14 @@
-package CommandInterface
+package cli
 
 import (
 	"flag"
 	"fmt"
-	"goBlockchain/Blockchain"
+	"goBlockchain/blockchain"
 	"os"
 )
 
 type CLI struct {
-	Bc *Blockchain.Blockchain
+	Bc *blockchain.Blockchain
 }
 
 func (cli *CLI) Run() {
