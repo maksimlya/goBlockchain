@@ -13,6 +13,7 @@ import (
 
 // Enum representation in golang
 type Offset int
+
 // Each Node stores it's offset ( aka if it allocated right or left-side of the parent )
 const (
 	Roof  Offset = 0
@@ -61,21 +62,26 @@ func (n *Node) PrintHash() {
 	fmt.Println(n.Hash)
 }
 
-func (t *MerkleTree) PrintLevels() map[int][]string{
-	var controlNode = t.Root
+func (t *MerkleTree) PrintLevels() map[int][]string {
+	if t == nil {
+		return nil
+	}
 	var levels = int(math.Log2(float64(len(t.Leafs))))
-	var stages = make(map[int][]string,levels)
-	for i:= 0 ; i <= levels ; i ++{
-		stages[i] = append(stages[i],controlNode.)
-		stages[i] = append(stages[i],controlNode.Right.Hash)
+	var stages = make(map[int][]string, levels)
 
+	stages = t.Root.visitNode(0, stages)
 
+	return stages
+}
 
+func (n *Node) visitNode(level int, stages map[int][]string) map[int][]string {
+	stages[level] = append(stages[level], n.Hash)
+
+	if !n.Leaf {
+		stages = n.Left.visitNode(level+1, stages)
+		stages = n.Right.visitNode(level+1, stages)
 	}
-	for {
-
-	}
-return stages
+	return stages
 }
 
 func (n *Node) verifyNode() string {
@@ -139,7 +145,7 @@ func buildWithContent(cs []Transactions.Transaction) (*Node, []*Node, error) {
 	}
 	var Leafs []*Node
 	for _, tx := range cs {
-		hash := tx.GetId()
+		hash := tx.GetHash()
 
 		Leafs = append(Leafs, &Node{
 			Hash: hash,
@@ -173,7 +179,6 @@ func buildIntermediate(nl []*Node) (*Node, error) {
 		var left, right int = i, i + 1
 		if i+1 == len(nl) {
 			right = i
-			""""""""""""""qqqqq
 		}
 		nl[left].Place = Left
 		nl[right].Place = Right
@@ -251,7 +256,7 @@ func (m *MerkleTree) GetProofElements(tx Transactions.Transaction) []ProofElemen
 	var proofs []ProofElement
 	var tmpNode *Node
 	for _, leaf := range m.Leafs {
-		if tx.GetId() == leaf.Hash {
+		if tx.GetHash() == leaf.Hash {
 			tmpNode = leaf
 			for tmpNode.Place != Roof {
 				switch tmpNode.Place {
@@ -275,7 +280,7 @@ func (m *MerkleTree) GetProofElements(tx Transactions.Transaction) []ProofElemen
 // The merkle root based on the given proof elements.
 // Returns true if the result equals to the assumed merkle root.
 func VerifyContent(tx Transactions.Transaction, proofs []ProofElement, merkleRoot string) bool {
-	result := tx.GetId()
+	result := tx.GetHash()
 
 	for i := range proofs {
 		hasher := sha256.New()

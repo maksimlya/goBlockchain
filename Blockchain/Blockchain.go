@@ -94,6 +94,22 @@ func (bc Blockchain) GetSignature(txid string) string {
 	return sigData
 }
 
+func (bc *Blockchain) GetAllSignatures() map[string]string {
+	sigs := make(map[string]string, bc.lastId*4)
+	it := bc.ForwardIterator()
+	for {
+		block := it.Next()
+		for i := range block.GetTransactions() {
+			sigs[block.GetTransactions()[i].Hash] = bc.GetSignature(block.GetTransactions()[i].Hash)
+		}
+		if block.GetId() == bc.lastId {
+			break
+		}
+	}
+
+	return sigs
+}
+
 func (bc Blockchain) InsertToChain(block Blocks.Block) {
 	var remainingTx []Transactions.Transaction
 	for i := 0; i < len(bc.pendingTx); i += maxSizeOfTx {
@@ -128,7 +144,7 @@ func (bc *Blockchain) MineNextBlock() {
 			amountOfTx++
 			continue
 		}
-		if !Security.VerifySignature(bc.signatures[bc.pendingTx[i].GetId()], bc.pendingTx[i].GetId(), bc.pendingTx[i].GetSender()) {
+		if !Security.VerifySignature(bc.signatures[bc.pendingTx[i].GetHash()], bc.pendingTx[i].GetHash(), bc.pendingTx[i].GetSender()) {
 			bc.pendingTx[i] = Transactions.GetNil()
 		}
 		transactios = append(transactios, bc.pendingTx[i])
@@ -143,7 +159,7 @@ func (bc *Blockchain) MineNextBlock() {
 		err := b.Put([]byte(newBlock.GetHash()), newBlock.Serialize())
 		err = b.Put([]byte(strconv.Itoa(newBlock.GetId())), []byte(newBlock.GetHash()))
 		for i := range transactios {
-			err := s.Put([]byte(transactios[i].GetId()), []byte(bc.signatures[transactios[i].GetId()]))
+			err := s.Put([]byte(transactios[i].GetHash()), []byte(bc.signatures[transactios[i].GetHash()]))
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -190,10 +206,10 @@ func (bc Blockchain) GetBlockById(id int) *Blocks.Block {
 }
 
 func (bc *Blockchain) AddTransaction(transaction Transactions.Transaction, signature string) {
-	if !Security.VerifySignature(signature, transaction.GetId(), transaction.GetSender()) {
+	if !Security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
 		return
 	}
-	bc.signatures[transaction.GetId()] = signature
+	bc.signatures[transaction.GetHash()] = signature
 	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 
@@ -348,14 +364,14 @@ func (bc *Blockchain) GetBalanceForAddress(address string) int {
 		for {
 			block := it.Next()
 			for _, element := range block.GetTransactions() {
-				signature := string(s.Get([]byte(element.GetId())))
+				signature := string(s.Get([]byte(element.GetHash())))
 				if element.GetReceiver() == address {
-					if Security.VerifySignature(signature, element.GetId(), element.GetSender()) {
+					if Security.VerifySignature(signature, element.GetHash(), element.GetSender()) {
 						amount += element.GetAmount()
 					}
 				}
 				if element.GetSender() == address {
-					if Security.VerifySignature(signature, element.GetId(), element.GetSender()) {
+					if Security.VerifySignature(signature, element.GetHash(), element.GetSender()) {
 						amount -= element.GetAmount()
 					}
 				}

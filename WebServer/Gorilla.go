@@ -19,7 +19,7 @@ func Run() error {
 	httpPort := "8080"
 	log.Println("Listening on ", httpPort)
 	s := &http.Server{
-		Addr:           "192.168.2.101:" + httpPort,
+		Addr:           ":" + httpPort,
 		Handler:        mux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
@@ -37,6 +37,8 @@ func makeMuxRouter() http.Handler {
 	muxRouter := mux.NewRouter()
 	muxRouter.HandleFunc("/", handleGetBlockchain).Methods("GET")
 	muxRouter.HandleFunc("/transactions", handleGetTransactions).Methods("GET")
+	muxRouter.HandleFunc("/merkle", handleGetMerkle).Methods("GET")
+	muxRouter.HandleFunc("/signatures", handleGetSignatures).Methods("GET")
 	//muxRouter.HandleFunc("/", handleWriteBlock).Methods("POST")
 	return muxRouter
 }
@@ -45,6 +47,33 @@ func handleGetBlockchain(w http.ResponseWriter, r *http.Request) {
 	blockchain := Blockchain.InitBlockchain()
 	blocks := blockchain.TraverseForwardBlockchain()
 	bytes, err := json.MarshalIndent(blocks, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+}
+
+func handleGetMerkle(w http.ResponseWriter, r *http.Request) {
+	blockchain := Blockchain.InitBlockchain()
+	block1 := blockchain.GetBlockById(1)
+
+	var v = make(map[string]map[int][]string, len(block1.GetMerkleTree().PrintLevels()))
+
+	v["BlockHash: "+block1.GetHash()] = block1.GetMerkleTree().PrintLevels()
+
+	bytes, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+}
+
+func handleGetSignatures(w http.ResponseWriter, r *http.Request) {
+	blockchain := Blockchain.InitBlockchain()
+	sigs := blockchain.GetAllSignatures()
+	bytes, err := json.MarshalIndent(sigs, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

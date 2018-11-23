@@ -14,7 +14,7 @@ func CreateBloom(txs []Transactions.Transaction) string {
 		bloom = bloom[:i] + "0"
 	}
 	for i := range txs {
-		bloom = ApplyBloom(txs[i].GetId(), bloom)
+		bloom = ApplyBloom(txs[i].GetHash(), bloom)
 	}
 	return bloom
 }

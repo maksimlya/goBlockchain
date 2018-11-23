@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/Blockchain"
 	"goBlockchain/Security"
 	"goBlockchain/Transactions"
+	"goBlockchain/WebServer"
+	"log"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -24,15 +25,15 @@ func main() {
 	tx3 := Transactions.Tx(nodeKey, "Koko", 1, "mm")
 	tx4 := Transactions.Tx(nodeKey, "Momo", 1, "mm")
 
-	sign1 := Security.Sign(tx1.GetId(), nodeHash)
-	sign2 := Security.Sign(tx2.GetId(), nodeHash)
-	sign3 := Security.Sign(tx3.GetId(), nodeHash)
-	sign4 := Security.Sign(tx4.GetId(), nodeHash)
+	sign1 := Security.Sign(tx1.GetHash(), nodeHash)
+	sign2 := Security.Sign(tx2.GetHash(), nodeHash)
+	sign3 := Security.Sign(tx3.GetHash(), nodeHash)
+	sign4 := Security.Sign(tx4.GetHash(), nodeHash)
 
-	valid1 := Security.VerifySignature(sign1, tx1.GetId(), nodeKey)
-	valid2 := Security.VerifySignature(sign2, tx2.GetId(), nodeKey)
-	valid3 := Security.VerifySignature(sign3, tx3.GetId(), nodeKey)
-	valid4 := Security.VerifySignature(sign4, tx4.GetId(), nodeKey)
+	valid1 := Security.VerifySignature(sign1, tx1.GetHash(), nodeKey)
+	valid2 := Security.VerifySignature(sign2, tx2.GetHash(), nodeKey)
+	valid3 := Security.VerifySignature(sign3, tx3.GetHash(), nodeKey)
+	valid4 := Security.VerifySignature(sign4, tx4.GetHash(), nodeKey)
 
 	fmt.Println(valid1)
 	fmt.Println(valid2)
@@ -134,10 +135,20 @@ func main() {
 	//
 	//fmt.Println(test)
 	//fmt.Println(blockchain.ValidateChain())
-	blockchain := Blockchain.InitBlockchain()
-	fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
+	//blockchain := Blockchain.InitBlockchain()
+	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
 	go func() {
 
 	}()
-	//log.Fatal(WebServer.Run())
+	log.Fatal(WebServer.Run())
+	//
+	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="
+	//txId := "d200f24e285bdbc9e48448030aedbf9188b927908cf693e62e167048f1165722"
+	//signature := "nfhy5bH5dbCZtWp0fXNAOpIUQjZhGkdd5kcQ5CMQE-I=,MTA5NzAyLDE2OTA0OSw3MzA0LDEwOTcwMiwzMzgyOSwxNDUxMjMsMzYxODkxLDM3NzM1NCwxNjY2MzcsMjQ5MDgyLDI3ODk3OCwyNDkwODIsMzIxMTAsMTY2NjM3LDQyODc1LDQyODc1LDMyMTEwLDMzODI5LDMyMTEwLDEwOTcwMiwyNDkwODIsMzM4MjksMTY5MDQ5LDE4OTE0LDE2OTA0OSwzNjE4OTEsMzIxMTAsMTQ3NDI3LDMyMTEwLDE0NTEyMywxMDk3MDIsNDI4NzUsMTQ3NDI3LDM1MDgxNywyNzg5NzgsNzMwNCwxNjkwNDksMTY5MDQ5LDMyMTEwLDE2NjYzNywzMjExMCwxNjkwNDksNzMwNCw3MzA0LDE0NTEyMywzNTA4MTcsMzc3MzU0LDkzMzkyLDE0NTEyMywzMzgyOSwzMzgyOSwzNzczNTQsNzMwNCwzNTA4MTcsOTMzOTIsMzUwODE3LDE0NzQyNywxODkxNCw0Mjg3NSwxNjY2MzcsMTg5MTQsNzMwNCwxODkxNCwzNTA4MTc="
+	//
+	//
+	//check := Security.VerifySignature(signature,txId,pubKey)
+	//
+	//fmt.Println(check)
+
 }
