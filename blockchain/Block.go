@@ -80,6 +80,7 @@ func MineBlock(id int, difficulty int, previousHash string, txs []transactions.T
 		hash = hex.EncodeToString(hasher.Sum(nil))
 		isValid = ValidateHash(hash, difficulty)
 	}
+
 	b := Block{BlockHeader: Header{Index: id, Timestamp: tStamp, Hash: hash, PreviousHash: previousHash, Nonce: nonce, MerkleRoot: merkleRoot, BloomFilter: bloomFilter}, merkleTree: merkle}
 	return b
 }
@@ -89,6 +90,14 @@ func (b Block) GetTransactions() []transactions.Transaction {
 		return b.merkleTree.GetTransactions()
 	}
 	return nil
+}
+func Hex2Bin(in byte) string {
+	var out []byte
+	for i := 7; i >= 0; i-- {
+		b := (in >> uint(i))
+		out = append(out, (b%2)+48)
+	}
+	return string(out)
 }
 
 func (b Block) PrintTime() {
@@ -133,7 +142,13 @@ func (b *Block) ValidateBlock() bool {
 }
 
 func ValidateHash(hash string, diff int) bool {
-	checkStr := string(hash[0:diff])
+
+	binaryData, _ := hex.DecodeString(hash)
+	var binaryString string
+	for i := range binaryData {
+		binaryString += Hex2Bin(binaryData[i])
+	}
+	checkStr := string(binaryString[0:diff])
 
 	hashBytes := []byte(checkStr)
 	j := 0

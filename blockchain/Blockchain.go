@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"goBlockchain/database"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
@@ -43,11 +44,11 @@ func initBlockchain() *Blockchain {
 	db := database.GetDatabase()
 	if !database.IsBlockchainExists() {
 		genesis := MineGenesisBlock()
-		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, difficulty: 4, signatures: make(map[string]string)}
+		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, difficulty: 16, signatures: make(map[string]string)}
 		bc.db.StoreNewBlockchain(genesis.GetHash(), genesis.GetId(), genesis.Serialize())
 	} else {
 		lastBlock := DeserializeBlock(db.GetLastBlock())
-		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, difficulty: 4, signatures: make(map[string]string)}
+		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, difficulty: 16, signatures: make(map[string]string)}
 	}
 
 	return &bc
@@ -73,6 +74,8 @@ func (bc *Blockchain) GetAllSignatures() map[string]string {
 	for {
 		block := it.Next()
 		for i := range block.GetTransactions() {
+			tx := block.GetTransactions()[i]
+			fmt.Println(tx)
 			sigs[block.GetTransactions()[i].Hash] = bc.GetSignature(block.GetTransactions()[i].Hash)
 		}
 		if block.GetId() == bc.lastId {

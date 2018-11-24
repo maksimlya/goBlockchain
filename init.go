@@ -7,6 +7,8 @@ import (
 	"goBlockchain/blockchain"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
+	"goBlockchain/webserver"
+	"log"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -139,7 +141,7 @@ func main() {
 	go func() {
 
 	}()
-	//log.Fatal(webserver.Run())
+	log.Fatal(webserver.Run())
 	//
 	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="
 	//txId := "d200f24e285bdbc9e48448030aedbf9188b927908cf693e62e167048f1165722"
