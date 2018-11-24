@@ -2,16 +2,13 @@ package webserver
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"goBlockchain/blockchain"
 	"goBlockchain/transactions"
-
-	//"goBlockchain/blockchain"
 	"io"
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 func Run() error {

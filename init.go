@@ -4,10 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"goBlockchain/blockchain"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
-	"goBlockchain/webserver"
-	"log"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -89,9 +88,9 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	//blockchain := blockchain.InitBlockchain()
+	blockchain := blockchain.InitBlockchain()
 	////
-	//blockchain.AddTransaction(tx1, sign1)
+	blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
 	//blockchain.AddTransaction(tx3, sign3)
 	//blockchain.AddTransaction(tx4, sign4)
@@ -140,7 +139,7 @@ func main() {
 	go func() {
 
 	}()
-	log.Fatal(webserver.Run())
+	//log.Fatal(webserver.Run())
 	//
 	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="
 	//txId := "d200f24e285bdbc9e48448030aedbf9188b927908cf693e62e167048f1165722"
