@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"goBlockchain/blockchain"
 	"goBlockchain/imports/bolt"
 	"strconv"
 )
@@ -28,14 +27,15 @@ func (d *Database) GetSignatureByHash(txHash string) string {
 	return sigData
 }
 
-func (d *Database) GetBlockById(blockId int) *blockchain.Block {
+func (d *Database) GetBlockById(blockId int) []byte {
 	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
-	var block *blockchain.Block
+	var blockData []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
 		blockHash := b.Get([]byte(strconv.Itoa(blockId)))
-		blockData := b.Get(blockHash)
-		block = blockchain.DeserializeBlock(blockData)
+		data := b.Get(blockHash)
+		blockData = make([]byte, len(data))
+		copy(blockData, data)
 
 		return nil
 	})
@@ -43,16 +43,17 @@ func (d *Database) GetBlockById(blockId int) *blockchain.Block {
 		fmt.Println(err)
 	}
 	d.db.Close()
-	return block
+	return blockData
 }
-func (d *Database) GetBlockByHash(blockHash string) *blockchain.Block {
+func (d *Database) GetBlockByHash(blockHash string) []byte {
 	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
-	var block *blockchain.Block
+	var blockData []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
 		blockHash := b.Get([]byte(blockHash))
-		blockData := b.Get(blockHash)
-		block = blockchain.DeserializeBlock(blockData)
+		data := b.Get(blockHash)
+		blockData = make([]byte, len(data))
+		copy(blockData, data)
 
 		return nil
 	})
@@ -60,17 +61,19 @@ func (d *Database) GetBlockByHash(blockHash string) *blockchain.Block {
 		fmt.Println(err)
 	}
 	d.db.Close()
-	return block
+	return blockData
 }
 
-func (d *Database) GetLastBlock() *blockchain.Block {
-	var lastBlock *blockchain.Block
+func (d *Database) GetLastBlock() []byte {
+	var blockData []byte
 	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	err := d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
+
 		lastHash := b.Get([]byte("l"))
-		blockData := b.Get(lastHash)
-		lastBlock = blockchain.DeserializeBlock(blockData)
+		data := b.Get(lastHash)
+		blockData = make([]byte, len(data))
+		copy(blockData, data)
 
 		return nil
 	})
@@ -79,7 +82,7 @@ func (d *Database) GetLastBlock() *blockchain.Block {
 	}
 	d.db.Close()
 
-	return lastBlock
+	return blockData
 }
 func (d *Database) GetLastBlockHash() string {
 	var lastBlockHash string
@@ -98,13 +101,13 @@ func (d *Database) GetLastBlockHash() string {
 	return lastBlockHash
 }
 
-func (d *Database) StoreBlock(block blockchain.Block) {
+func (d *Database) StoreBlock(blockHash string, blockId int, blockData []byte) {
 	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
-		err := b.Put([]byte(block.GetHash()), block.Serialize())
-		err = b.Put([]byte(strconv.Itoa(block.GetId())), []byte(block.GetHash()))
-		err = b.Put([]byte("l"), []byte(block.GetHash()))
+		err := b.Put([]byte(blockHash), blockData)
+		err = b.Put([]byte(strconv.Itoa(blockId)), []byte(blockHash))
+		err = b.Put([]byte("l"), []byte(blockHash))
 		//bc.tip = []byte(newBlock.GetHash())
 		if err != nil {
 			fmt.Println(err)
@@ -134,42 +137,48 @@ func (d *Database) StoreSignature(txHash string, signature string) {
 	d.db.Close()
 }
 
-func GetBlockchain() *blockchain.Blockchain {
-	var lastHash string
-	var lastId int
+func GetDatabase() Database {
+	db, _ := bolt.Open("Blockchain.db", 0600, nil)
+	db.Close()
+	return Database{db: db}
+}
+
+func IsBlockchainExists() bool {
+	exists := true
 	db, err := bolt.Open("Blockchain.db", 0600, nil)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
-
 		if b == nil {
-			genesis := blockchain.MineGenesisBlock()
-			b, err := tx.CreateBucket([]byte("blocks"))
-			s, err := tx.CreateBucket([]byte("signatures"))
-			err = s.Put([]byte("Genesis"), []byte("0"))
-			err = b.Put([]byte(genesis.GetHash()), genesis.Serialize())
-			err = b.Put([]byte("l"), []byte(genesis.GetHash()))
-			err = b.Put([]byte("0"), []byte(genesis.GetHash()))
-			lastHash = genesis.GetHash()
-			lastId = 0
+			exists = false
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+	db.Close()
+	return exists
+}
 
-			if err != nil {
-				fmt.Println(err)
-			}
+func (d *Database) StoreNewBlockchain(lastHash string, lastId int, blockData []byte) {
+	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
+	err := d.db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucket([]byte("blocks"))
+		s, err := tx.CreateBucket([]byte("signatures"))
+		err = s.Put([]byte("Genesis"), []byte("0"))
+		err = b.Put([]byte(lastHash), blockData)
+		err = b.Put([]byte("l"), []byte(lastHash))
+		err = b.Put([]byte("0"), []byte(lastHash))
 
-		} else {
-			lastHash = string(b.Get([]byte("l"))[:])
-			lastId = blockchain.DeserializeBlock(b.Get([]byte(lastHash))).GetId()
+		if err != nil {
+			fmt.Println(err)
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	bc := blockchain.Blockchain{LastId: lastId, LastHash: lastHash, Db: Database{db: db}, Difficulty: 4, Signatures: make(map[string]string)}
-	db.Close()
-	return &bc
+	d.db.Close()
 }

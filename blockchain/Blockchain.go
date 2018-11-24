@@ -4,17 +4,18 @@ import (
 	"goBlockchain/database"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
+	"sync"
 )
 
 type Blockchain struct {
 	chain       []Block
-	LastHash    string
-	LastId      int
-	Db          database.Database
+	lastHash    string
+	lastId      int
+	db          database.Database
 	numOfBlocks int
-	Difficulty  int
+	difficulty  int
 	pendingTx   []transactions.Transaction
-	Signatures  map[string]string
+	signatures  map[string]string
 }
 
 type BlockchainIterator struct {
@@ -26,32 +27,55 @@ type BlockchainForwardIterator struct {
 	db        database.Database
 }
 
+var instance *Blockchain
+var once sync.Once
 var maxSizeOfTx = 4
 
-func InitBlockchain() *Blockchain {
-	bc := database.GetBlockchain()
-	return bc
+func GetInstance() *Blockchain {
+	once.Do(func() {
+		instance = initBlockchain()
+	})
+	return instance
+}
+
+func initBlockchain() *Blockchain {
+	var bc Blockchain
+	db := database.GetDatabase()
+	if !database.IsBlockchainExists() {
+		genesis := MineGenesisBlock()
+		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, difficulty: 4, signatures: make(map[string]string)}
+		bc.db.StoreNewBlockchain(genesis.GetHash(), genesis.GetId(), genesis.Serialize())
+	} else {
+		lastBlock := DeserializeBlock(db.GetLastBlock())
+		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, difficulty: 4, signatures: make(map[string]string)}
+	}
+
+	return &bc
 
 }
 
-func (bc Blockchain) getSignature(key string) string {
-	return bc.Signatures[key]
+func (bc *Blockchain) GetPendingTransactions() []transactions.Transaction {
+	return bc.pendingTx
+}
+
+func (bc *Blockchain) getSignature(key string) string {
+	return bc.signatures[key]
 }
 
 func (bc Blockchain) GetSignature(txHash string) string {
-	signature := bc.Db.GetSignatureByHash(txHash)
+	signature := bc.db.GetSignatureByHash(txHash)
 	return signature
 }
 
 func (bc *Blockchain) GetAllSignatures() map[string]string {
-	sigs := make(map[string]string, bc.LastId*4)
+	sigs := make(map[string]string, bc.lastId*4)
 	it := bc.ForwardIterator()
 	for {
 		block := it.Next()
 		for i := range block.GetTransactions() {
 			sigs[block.GetTransactions()[i].Hash] = bc.GetSignature(block.GetTransactions()[i].Hash)
 		}
-		if block.GetId() == bc.LastId {
+		if block.GetId() == bc.lastId {
 			break
 		}
 	}
@@ -70,7 +94,7 @@ func (bc *Blockchain) GetAllSignatures() map[string]string {
 
 func (bc *Blockchain) MineNextBlock() {
 
-	lastBlock := bc.Db.GetLastBlock()
+	lastBlock := DeserializeBlock(bc.db.GetLastBlock())
 
 	var transactios []transactions.Transaction
 	amountOfTx := 0
@@ -79,18 +103,19 @@ func (bc *Blockchain) MineNextBlock() {
 			amountOfTx++
 			continue
 		}
-		if !security.VerifySignature(bc.Signatures[bc.pendingTx[i].GetHash()], bc.pendingTx[i].GetHash(), bc.pendingTx[i].GetSender()) {
+		if !security.VerifySignature(bc.signatures[bc.pendingTx[i].GetHash()], bc.pendingTx[i].GetHash(), bc.pendingTx[i].GetSender()) {
 			bc.pendingTx[i] = transactions.GetNil()
 		}
 		transactios = append(transactios, bc.pendingTx[i])
 		amountOfTx++
 	}
 	bc.pendingTx = bc.pendingTx[amountOfTx:] // TODO -  improve for dynamic use
-	newBlock := MineBlock(lastBlock.GetId()+1, bc.Difficulty, string(lastBlock.GetHash()), transactios)
-	bc.Db.StoreBlock(newBlock)
+	newBlock := MineBlock(lastBlock.GetId()+1, bc.difficulty, string(lastBlock.GetHash()), transactios)
+	bc.db.StoreBlock(newBlock.GetHash(), newBlock.GetId(), newBlock.Serialize())
+	bc.lastId = newBlock.GetId()
 	for i := range transactios {
 		txHash := transactios[i].GetHash()
-		bc.Db.StoreSignature(txHash, bc.Signatures[txHash])
+		bc.db.StoreSignature(txHash, bc.signatures[txHash])
 	}
 }
 
@@ -105,7 +130,7 @@ func (bc Blockchain) SearchBlock(hash string) Block {
 }
 
 func (bc Blockchain) GetBlockById(id int) *Block {
-	block := bc.Db.GetBlockById(id)
+	block := DeserializeBlock(bc.db.GetBlockById(id))
 	return block
 }
 
@@ -113,7 +138,7 @@ func (bc *Blockchain) AddTransaction(transaction transactions.Transaction, signa
 	if !security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
 		return
 	}
-	bc.Signatures[transaction.GetHash()] = signature
+	bc.signatures[transaction.GetHash()] = signature
 	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 
@@ -123,26 +148,26 @@ func (bc *Blockchain) GetLastBlock() *Block {
 }
 
 func (bc *Blockchain) Iterator() *BlockchainIterator {
-	bci := &BlockchainIterator{bc.LastHash, bc.Db}
+	bci := &BlockchainIterator{bc.lastHash, bc.db}
 
 	return bci
 }
 func (bc *Blockchain) ForwardIterator() *BlockchainForwardIterator {
-	bcfi := &BlockchainForwardIterator{0, bc.Db}
+	bcfi := &BlockchainForwardIterator{0, bc.db}
 
 	return bcfi
 }
 
 func (i *BlockchainIterator) Next() *Block {
 
-	block := i.db.GetBlockByHash(i.currentHash)
+	block := DeserializeBlock(i.db.GetBlockByHash(i.currentHash))
 	i.currentHash = block.GetPreviousHash()
 
 	return block
 }
 func (i *BlockchainForwardIterator) Next() *Block {
 
-	block := i.db.GetBlockById(i.currentId)
+	block := DeserializeBlock(i.db.GetBlockById(i.currentId))
 	i.currentId++
 
 	return block
@@ -225,7 +250,7 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 		block := it.Next()
 		blocks = append(blocks, block)
 
-		if block.GetId() == bc.LastId {
+		if block.GetId() == bc.lastId {
 			break
 		}
 	}
