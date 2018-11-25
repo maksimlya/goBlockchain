@@ -231,27 +231,27 @@ func HandleBlock(request []byte, chain *blockchain.Blockchain) {
 				nc.SendGetBlocks(node)
 			}
 		}
-	} else {
-
-		fmt.Println("Received a new Block!")
-		valid := chain.AddBlock(block)
-
-		if valid {
-			fmt.Printf("Added block %s\n", block.GetHash())
-		} else {
-			fmt.Println("Failed to add block.." + block.GetHash())
-		}
-
-		if len(blocksInTransit) > 0 {
-			blockHash := blocksInTransit[0]
-			nc.SendGetData(payload.AddrFrom, "block", blockHash)
-
-			blocksInTransit = blocksInTransit[1:]
-		} else {
-			checkChain := chain.ValidateChain()
-			fmt.Println(checkChain)
-		}
 	}
+
+	fmt.Println("Received a new Block!")
+	valid := chain.AddBlock(block)
+
+	if valid {
+		fmt.Printf("Added block %s\n", block.GetHash())
+	} else {
+		fmt.Println("Failed to add block.." + block.GetHash())
+	}
+
+	if len(blocksInTransit) > 0 {
+		blockHash := blocksInTransit[0]
+		nc.SendGetData(payload.AddrFrom, "block", blockHash)
+
+		blocksInTransit = blocksInTransit[1:]
+	} else {
+		checkChain := chain.ValidateChain()
+		fmt.Println(checkChain)
+	}
+
 }
 
 func RequestBlocks() {
