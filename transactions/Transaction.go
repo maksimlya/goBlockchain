@@ -1,8 +1,12 @@
 package transactions
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"strconv"
 	"time"
 )
@@ -23,6 +27,30 @@ func Tx(from string, to string, amount int, tag string) Transaction {
 	tx := Transaction{Hash: hex.EncodeToString(shaHasher.Sum(nil)), From: from, To: to, Amount: amount, Tag: tag, Timestamp: timestamp}
 
 	return tx
+}
+
+func (t *Transaction) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(t)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return result.Bytes()
+}
+func DeserializeTransaction(d []byte) *Transaction {
+	var tx Transaction
+
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+
+	err := decoder.Decode(&tx)
+
+	if err != nil && err != io.EOF {
+		fmt.Println(err)
+	}
+
+	return &tx
 }
 
 func GetNil() Transaction {

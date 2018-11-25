@@ -39,6 +39,10 @@ func GetInstance() *Blockchain {
 	return instance
 }
 
+func (bc *Blockchain) CloseDB() {
+	bc.db.CloseDB()
+}
+
 func initBlockchain() *Blockchain {
 	var bc Blockchain
 	db := database.GetDatabase()
@@ -298,3 +302,23 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 //	return amount
 //
 //}
+
+func (bc *Blockchain) AddBlock(block *Block) { // TODO - Rework that function
+	bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
+	bc.lastId++
+}
+
+func (bc *Blockchain) GetBlockHashes() [][]byte {
+	it := bc.Iterator()
+	var hashes = make([][]byte, 1000)
+	for {
+		block := it.Next()
+		hashes[block.GetId()] = append(hashes[block.GetId()], []byte(block.GetHash())...)
+
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+
+	return hashes
+}

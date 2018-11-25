@@ -4,11 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/blockchain"
+	"goBlockchain/p2p"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
-	"goBlockchain/webserver"
-	"log"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -90,9 +88,9 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	blockchain := blockchain.GetInstance()
-	//////
-	blockchain.AddTransaction(tx1, sign1)
+	//blockchain := blockchain.GetInstance()
+	////////
+	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
 	//blockchain.AddTransaction(tx3, sign3)
 	//blockchain.AddTransaction(tx4, sign4)
@@ -138,10 +136,14 @@ func main() {
 	//fmt.Println(blockchain.ValidateChain())
 	//blockchain := blockchain.InitBlockchain()
 	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
-	go func() {
 
-	}()
-	log.Fatal(webserver.Run())
+	p2p.StartServer("3000", "")
+
+	//go func() {
+	//
+	//}()
+	//log.Fatal(webserver.Run())
+
 	//
 	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="
 	//txId := "d200f24e285bdbc9e48448030aedbf9188b927908cf693e62e167048f1165722"

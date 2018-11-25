@@ -27,6 +27,10 @@ func (d *Database) GetSignatureByHash(txHash string) string {
 	return sigData
 }
 
+func (d *Database) CloseDB() {
+	d.db.Close()
+}
+
 func (d *Database) GetBlockById(blockId int) []byte {
 	d.db, _ = bolt.Open("Blockchain.db", 0600, nil)
 	var blockData []byte

@@ -2,8 +2,8 @@ package webserver
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"goBlockchain/blockchain"
+	"goBlockchain/imports/mux"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"io"
@@ -20,12 +20,12 @@ type Message struct {
 }
 
 func Run() error {
-	mux := makeMuxRouter()
+	muxServer := makeMuxRouter()
 	httpPort := "8080"
 	log.Println("Listening on ", httpPort)
 	s := &http.Server{
 		Addr:           ":" + httpPort,
-		Handler:        mux,
+		Handler:        muxServer,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
