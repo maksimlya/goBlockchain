@@ -416,6 +416,7 @@ func RequestBlocks() {
 
 func StartServer(nodeID, minerAddress string) {
 	nodeAdress = fmt.Sprintf("192.168.2.101:%s", nodeID)
+	//nodeAdress = fmt.Sprintf("192.168.2.110:%s", nodeID)
 	minerAddress = minerAddress
 
 	ln, err := net.Listen(protocol, nodeAdress)
