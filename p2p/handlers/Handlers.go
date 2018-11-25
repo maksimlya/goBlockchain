@@ -13,7 +13,7 @@ import (
 	"net"
 )
 
-var nc p2p.NetworkController
+var nc *p2p.NetworkController
 var blocksInTransit = [][]byte{}
 
 const (
@@ -65,7 +65,7 @@ func HandleGetBlocks(request []byte, chain *blockchain.Blockchain) {
 
 	blocks := chain.GetBlockHashes()
 
-	p2p.SendInv(payload.AddrFrom, "block", blocks)
+	nc.SendInv(payload.AddrFrom, "block", blocks)
 }
 
 func HandleGetData(request []byte, chain *blockchain.Blockchain) {
@@ -90,7 +90,7 @@ func HandleGetData(request []byte, chain *blockchain.Blockchain) {
 		for _, t := range chain.GetPendingTransactions() {
 			if t.Hash == txID {
 				tx := t
-				p2p.SendTx(payload.AddrFrom, tx.Serialize())
+				nc.SendTx(payload.AddrFrom, tx.Serialize())
 			}
 		}
 
@@ -110,21 +110,21 @@ func HandleVersion(request []byte, chain *blockchain.Blockchain) {
 	otherHeight := payload.BestHeight
 
 	if bestHeight < otherHeight {
-		p2p.SendGetBlocks(payload.AddrFrom)
+		nc.SendGetBlocks(payload.AddrFrom)
 	} else if bestHeight > otherHeight {
-		p2p.SendVersion(payload.AddrFrom, chain.GetBlocksAmount())
+		nc.SendVersion(payload.AddrFrom, chain.GetBlocksAmount())
 	} else {
 		fmt.Printf("Current Blockchain is up-to-date with %s peer", payload.AddrFrom)
 	}
 
 	if !NodeIsKnown(payload.AddrFrom) {
-		p2p.KnownNodes = append(p2p.KnownNodes, payload.AddrFrom)
+		nc.KnownNodes = append(nc.KnownNodes, payload.AddrFrom)
 	}
 
 }
 
 func NodeIsKnown(addr string) bool {
-	for _, node := range p2p.KnownNodes {
+	for _, node := range nc.KnownNodes {
 		if node == addr {
 			return true
 		}
@@ -147,12 +147,12 @@ func HandleTx(request []byte, chain *blockchain.Blockchain) {
 	tx := transactions.DeserializeTransaction(txData)
 	chain.AddTransaction(*tx, "")
 
-	fmt.Printf("%s, %d ATTENTION TRANSACTION WILL NOT BE ADDED SINCE WE'RE NOT YET SENDING SIGNATURE!!!", p2p.NodeAdress, len(chain.GetPendingTransactions()))
+	fmt.Printf("%s, %d ATTENTION TRANSACTION WILL NOT BE ADDED SINCE WE'RE NOT YET SENDING SIGNATURE!!!", nc.GetNodeAddress(), len(chain.GetPendingTransactions()))
 
-	if p2p.NodeAdress == p2p.KnownNodes[0] {
-		for _, node := range p2p.KnownNodes {
-			if node != p2p.NodeAdress && node != payload.AddrFrom {
-				p2p.SendInv(node, "tx", [][]byte{[]byte(tx.GetHash())})
+	if nc.GetNodeAddress() == nc.KnownNodes[0] {
+		for _, node := range nc.GetKnownNodes() {
+			if node != nc.GetNodeAddress() && node != payload.AddrFrom {
+				nc.SendInv(node, "tx", [][]byte{[]byte(tx.GetHash())})
 			}
 		}
 	}
@@ -175,7 +175,7 @@ func HandleInv(request []byte, chain *blockchain.Blockchain) {
 		blocksInTransit = payload.Items
 
 		blockHash := payload.Items[0]
-		p2p.SendGetData(payload.AddrFrom, "block", blockHash)
+		nc.SendGetData(payload.AddrFrom, "block", blockHash)
 
 		newInTransit := [][]byte{}
 
@@ -190,7 +190,7 @@ func HandleInv(request []byte, chain *blockchain.Blockchain) {
 		txID := payload.Items[0]
 
 		if chain.GetPendingTransactionByHash(string(txID[:])).GetHash() == "" {
-			p2p.SendGetData(payload.AddrFrom, "tx", txID)
+			nc.SendGetData(payload.AddrFrom, "tx", txID)
 		}
 
 	}
@@ -206,8 +206,8 @@ func HandleAddr(request []byte) {
 		log.Panic(err)
 	}
 
-	p2p.KnownNodes = append(p2p.KnownNodes, payload.AddrList...)
-	fmt.Printf("There are %d known nodes\n", len(p2p.KnownNodes))
+	nc.AppendKnownNode(payload.AddrList)
+	fmt.Printf("There are %d known nodes\n", len(nc.GetKnownNodes()))
 	RequestBlocks()
 }
 
@@ -232,7 +232,7 @@ func HandleBlock(request []byte, chain *blockchain.Blockchain) {
 
 	if len(blocksInTransit) > 0 {
 		blockHash := blocksInTransit[0]
-		p2p.SendGetData(payload.AddrFrom, "block", blockHash)
+		nc.SendGetData(payload.AddrFrom, "block", blockHash)
 
 		blocksInTransit = blocksInTransit[1:]
 	} else {
@@ -242,18 +242,18 @@ func HandleBlock(request []byte, chain *blockchain.Blockchain) {
 }
 
 func RequestBlocks() {
-	for _, node := range p2p.KnownNodes {
-		p2p.SendGetBlocks(node)
+	for _, node := range nc.GetKnownNodes() {
+		nc.SendGetBlocks(node)
 	}
 }
 
 func StartServer(nodeID string) {
-	p2p.NodeAdress = fmt.Sprintf("192.168.2.101:%s", nodeID)
-	//nodeAdress = fmt.Sprintf("192.168.2.110:%s", nodeID)
+	nc = p2p.GetInstance()
+	nc.AppendKnownNode([]string{"192.168.2.101:3000"})
+	nc.SetNodeAddress("192.168.2.101:3000")
+	//nc.SetNodeAddress("192.168.2.110:3000")
 
-	nc = p2p.NetworkController{}
-
-	ln, err := net.Listen(protocol, p2p.NodeAdress)
+	ln, err := net.Listen(protocol, nc.GetNodeAddress())
 	if err != nil {
 		log.Panic(err)
 	}
@@ -262,8 +262,8 @@ func StartServer(nodeID string) {
 	chain := blockchain.GetInstance()
 	defer chain.CloseDB()
 
-	if p2p.NodeAdress != p2p.KnownNodes[0] {
-		p2p.SendVersion(p2p.KnownNodes[0], chain.GetBlocksAmount())
+	if nc.GetNodeAddress() != nc.GetKnownNodes()[0] {
+		nc.SendVersion(nc.GetKnownNodes()[0], chain.GetBlocksAmount())
 	}
 
 	for {

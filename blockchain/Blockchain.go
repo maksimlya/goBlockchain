@@ -7,6 +7,7 @@ import (
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"sync"
+	"time"
 )
 
 type Blockchain struct {
@@ -346,4 +347,15 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 	}
 
 	return hashes
+}
+
+func (bc *Blockchain) DataListener() {
+	{
+		time.Sleep(5 * time.Second)
+		if !bc.ValidateChain() {
+			fmt.Println("Blockchain data compromised... requesting new copy from neighbor peer...")
+
+		}
+	}
+
 }

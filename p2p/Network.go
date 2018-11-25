@@ -7,10 +7,36 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
+
+var instance *NetworkController
+var once sync.Once
 
 type NetworkController struct {
 	NodeAddress string
+	KnownNodes  []string
+}
+
+func (nc *NetworkController) GetNodeAddress() string {
+	return nc.NodeAddress
+}
+func (nc *NetworkController) GetKnownNodes() []string {
+	return nc.KnownNodes
+}
+
+func (nc *NetworkController) AppendKnownNode(address []string) {
+	nc.KnownNodes = append(nc.KnownNodes, address...)
+}
+func (nc *NetworkController) SetNodeAddress(address string) {
+	nc.NodeAddress = address
+}
+
+func GetInstance() *NetworkController {
+	once.Do(func() {
+		instance = &NetworkController{}
+	})
+	return instance
 }
 
 type Addr struct {
@@ -50,11 +76,6 @@ const (
 	commandLength = 12
 )
 
-var (
-	NodeAdress string
-	KnownNodes = []string{"192.168.2.101:3000"}
-)
-
 func CmdToBytes(cmd string) []byte {
 	var bytes [commandLength]byte
 
@@ -88,86 +109,86 @@ func GobEncode(data interface{}) []byte {
 }
 
 func (nc *NetworkController) SendBlock(addr string, block []byte) {
-	data := Block{NodeAdress, block}
+	data := Block{nc.GetNodeAddress(), block}
 	payload := GobEncode(data)
 	request := append(CmdToBytes("block"), payload...)
 
-	SendData(addr, request)
+	nc.SendData(addr, request)
 }
 
 func (nc *NetworkController) BroadcastBlock(block []byte) {
-	data := Block{NodeAdress, block}
+	data := Block{nc.GetNodeAddress(), block}
 	payload := GobEncode(data)
 	request := append(CmdToBytes("block"), payload...)
 
-	for _, node := range KnownNodes {
-		if node != NodeAdress {
-			SendData(node, request)
+	for _, node := range nc.GetKnownNodes() {
+		if node != nc.GetNodeAddress() {
+			nc.SendData(node, request)
 		}
 	}
 
 }
 
-func SendInv(address, kind string, items [][]byte) {
-	inventory := Inv{NodeAdress, kind, items}
+func (nc *NetworkController) SendInv(address, kind string, items [][]byte) {
+	inventory := Inv{nc.GetNodeAddress(), kind, items}
 	payload := GobEncode(inventory)
 	request := append(CmdToBytes("inv"), payload...)
 
-	SendData(address, request)
+	nc.SendData(address, request)
 }
 
-func SendTx(addr string, tx []byte) {
-	data := Tx{NodeAdress, tx}
+func (nc *NetworkController) SendTx(addr string, tx []byte) {
+	data := Tx{nc.GetNodeAddress(), tx}
 	payload := GobEncode(data)
 	request := append(CmdToBytes("tx"), payload...)
 
-	SendData(addr, request)
+	nc.SendData(addr, request)
 }
 
-func SendVersion(addr string, bestHeight int) {
-	payload := GobEncode(Version{version, bestHeight, NodeAdress})
+func (nc *NetworkController) SendVersion(addr string, bestHeight int) {
+	payload := GobEncode(Version{version, bestHeight, nc.GetNodeAddress()})
 
 	request := append(CmdToBytes("version"), payload...)
 
-	SendData(addr, request)
+	nc.SendData(addr, request)
 }
 
-func SendGetBlocks(address string) {
-	payload := GobEncode(GetBlocks{NodeAdress})
+func (nc *NetworkController) SendGetBlocks(address string) {
+	payload := GobEncode(GetBlocks{nc.GetNodeAddress()})
 	request := append(CmdToBytes("getBlocks"), payload...)
 
-	SendData(address, request)
+	nc.SendData(address, request)
 }
 
-func SendGetData(address, kind string, id []byte) {
-	payload := GobEncode(GetData{NodeAdress, kind, id})
+func (nc *NetworkController) SendGetData(address, kind string, id []byte) {
+	payload := GobEncode(GetData{nc.GetNodeAddress(), kind, id})
 	request := append(CmdToBytes("getData"), payload...)
 
-	SendData(address, request)
+	nc.SendData(address, request)
 }
 
-func SendAddr(address string) {
-	nodes := Addr{KnownNodes}
-	nodes.AddrList = append(nodes.AddrList, NodeAdress)
+func (nc *NetworkController) SendAddr(address string) {
+	nodes := Addr{nc.GetKnownNodes()}
+	nodes.AddrList = append(nodes.AddrList, nc.GetNodeAddress())
 	payload := GobEncode(nodes)
 	request := append(CmdToBytes("addr"), payload...)
 
-	SendData(address, request)
+	nc.SendData(address, request)
 }
 
-func SendData(addr string, data []byte) {
+func (nc *NetworkController) SendData(addr string, data []byte) {
 	conn, err := net.Dial(protocol, addr)
 
 	if err != nil {
 		fmt.Printf("%s is not available\n", addr)
 		var updatedNodes []string
 
-		for _, node := range KnownNodes {
+		for _, node := range nc.GetKnownNodes() {
 			if node != addr {
 				updatedNodes = append(updatedNodes, node)
 			}
 		}
-		KnownNodes = updatedNodes
+		nc.AppendKnownNode(updatedNodes)
 		return
 	}
 
