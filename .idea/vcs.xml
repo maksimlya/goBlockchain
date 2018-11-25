@@ -3,6 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/imports/bolt" vcs="" />
-    <mapping directory="$PROJECT_DIR$/imports/vrecan/death.v3" vcs="" />
+    <mapping directory="$PROJECT_DIR$/imports/vrecan/death.v3" vcs="Git" />
   </component>
 </project>
