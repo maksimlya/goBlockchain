@@ -76,11 +76,19 @@ func handleGetBlockchain(w http.ResponseWriter, r *http.Request) {
 
 func handleGetMerkle(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
-	block1 := bc.GetBlockById(1)
 
-	var v = make(map[string]map[int][]string, len(block1.GetMerkleTree().PrintLevels()))
+	it := bc.ForwardIterator()
+	var v = make(map[string]map[int][]string)
+	for {
+		block := it.Next()
 
-	v["BlockHash: "+block1.GetHash()] = block1.GetMerkleTree().PrintLevels()
+		v["BlockHash: "+block.GetHash()] = block.GetMerkleTree().PrintLevels()
+
+		if block.GetId() == bc.GetLastBlock().GetId() {
+			break
+		}
+
+	}
 
 	bytes, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
