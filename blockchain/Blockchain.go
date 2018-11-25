@@ -323,9 +323,22 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 //}
 
 func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that function (should work now)
+
+	if block.GetId() == 0 {
+		bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
+		bc.lastId = 0
+		bc.lastHash = block.GetHash()
+
+		return true
+	}
+
+	if !(block.GetId() == bc.GetLastBlock().GetId()+1) {
+		return false
+	}
+	if !(block.GetPreviousHash() == bc.GetLastBlock().GetHash()) {
+		return false
+	}
 	isValid := block.ValidateBlock()
-	isValid = block.GetPreviousHash() == bc.GetLastBlock().GetHash()
-	isValid = block.GetId() == bc.GetLastBlock().GetId()+1
 
 	if isValid {
 		bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
