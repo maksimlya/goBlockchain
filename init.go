@@ -4,9 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/blockchain"
+	"goBlockchain/p2p"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
+	"goBlockchain/webserver"
+	"log"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -88,9 +90,8 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	blockchain := blockchain.GetInstance()
-	block := blockchain.GetLastBlock()
-	fmt.Println(block)
+	//blockchain := blockchain.GetInstance()
+
 	////////
 	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
@@ -139,12 +140,10 @@ func main() {
 	//blockchain := blockchain.InitBlockchain()
 	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
 
-	//p2p.StartServer("3000", "")
-
-	//go func() {
-	//
-	//}()
-	//log.Fatal(webserver.Run())
+	go func() {
+		p2p.StartServer("3000", "")
+	}()
+	log.Fatal(webserver.Run())
 
 	//
 	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="

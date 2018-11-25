@@ -270,7 +270,7 @@ func HandleVersion(request []byte, chain *blockchain.Blockchain) {
 		log.Panic(err)
 	}
 	block := chain.GetLastBlock()
-	bestHeight := block.GetId()
+	bestHeight := block.GetId() + 1
 	otherHeight := payload.BestHeight
 
 	if bestHeight < otherHeight {
