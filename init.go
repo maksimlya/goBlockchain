@@ -91,7 +91,7 @@ func main() {
 	////fmt.Println(res)
 	//
 	//blockchain := blockchain.GetInstance()
-
+	//
 	////////
 	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)

@@ -39,6 +39,7 @@ var maxSizeOfTx = 4
 func GetInstance() *Blockchain {
 	once.Do(func() {
 		instance = initBlockchain()
+		go instance.DataListener()
 	})
 	return instance
 }
@@ -350,10 +351,16 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 }
 
 func (bc *Blockchain) DataListener() {
-	{
-		time.Sleep(5 * time.Second)
+	for {
+		time.Sleep(15 * time.Second)
 		if !bc.ValidateChain() {
 			fmt.Println("Blockchain data compromised... requesting new copy from neighbor peer...")
+			bc.lastId = 0
+			for _, node := range nc.GetKnownNodes() {
+				if nc.GetNodeAddress() != node {
+					nc.SendVersion(node, bc.lastId)
+				}
+			}
 
 		}
 	}
