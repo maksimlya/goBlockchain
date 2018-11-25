@@ -6,15 +6,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"goBlockchain/blockchain"
-	"goBlockchain/imports/death"
 	"goBlockchain/transactions"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
-	"os"
-	"runtime"
-	"syscall"
 )
 
 type Addr struct {
@@ -94,15 +90,15 @@ func GobEncode(data interface{}) []byte {
 	return buff.Bytes()
 }
 
-func CloseDB(chain *blockchain.Blockchain) {
-	d := death.NewDeath(syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-
-	d.WaitForDeathWithFunc(func() {
-		defer os.Exit(1)
-		defer runtime.Goexit()
-		chain.CloseDB()
-	})
-}
+//func CloseDB(chain *blockchain.Blockchain) {		// TODO - remove? in our implementation
+//	d := death.NewDeath(syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+//
+//	d.WaitForDeathWithFunc(func() {
+//		defer os.Exit(1)
+//		defer runtime.Goexit()
+//		chain.CloseDB()
+//	})
+//}
 
 func SendBlock(addr string, b *blockchain.Block) {
 	data := Block{nodeAdress, b.Serialize()}
@@ -276,6 +272,8 @@ func HandleVersion(request []byte, chain *blockchain.Blockchain) {
 		SendGetBlocks(payload.AddrFrom)
 	} else if bestHeight > otherHeight {
 		SendVersion(payload.AddrFrom, chain)
+	} else {
+		fmt.Printf("Current Blockchain is up-to-date with %s peer", payload.AddrFrom)
 	}
 
 	if !NodeIsKnown(payload.AddrFrom) {
@@ -426,7 +424,7 @@ func StartServer(nodeID, minerAddress string) {
 
 	chain := blockchain.GetInstance()
 	defer chain.CloseDB()
-	go CloseDB(chain)
+	//go CloseDB(chain)
 
 	if nodeAdress != KnownNodes[0] {
 		SendVersion(KnownNodes[0], chain)
