@@ -114,7 +114,7 @@ func HandleVersion(request []byte, chain *blockchain.Blockchain) {
 	} else if bestHeight > otherHeight {
 		nc.SendVersion(payload.AddrFrom, chain.GetBlocksAmount())
 	} else {
-		fmt.Printf("Current Blockchain is up-to-date with %s peer", payload.AddrFrom)
+		fmt.Printf("Current Blockchain is up-to-date with %s peer\n", payload.AddrFrom)
 	}
 
 	if !NodeIsKnown(payload.AddrFrom) {

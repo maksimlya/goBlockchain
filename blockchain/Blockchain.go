@@ -353,10 +353,8 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 
 func (bc *Blockchain) DataListener() {
 	for {
-		time.Sleep(5 * time.Second)
-		if bc.ValidateChain() {
-			fmt.Println("Blocks check passed successfully...")
-		} else {
+		time.Sleep(15 * time.Second)
+		if !bc.ValidateChain() {
 			fmt.Println("Blockchain data compromised... requesting new copy from neighbor peer...")
 			bc.lastId = 0
 			for _, node := range nc.GetKnownNodes() {
