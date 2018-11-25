@@ -9,7 +9,9 @@ import (
 	"net"
 )
 
-type NetworkController struct{}
+type NetworkController struct {
+	NodeAddress string
+}
 
 type Addr struct {
 	AddrList []string
@@ -99,7 +101,9 @@ func (nc *NetworkController) BroadcastBlock(block []byte) {
 	request := append(CmdToBytes("block"), payload...)
 
 	for _, node := range KnownNodes {
-		SendData(node, request)
+		if node != NodeAdress {
+			SendData(node, request)
+		}
 	}
 
 }
