@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
@@ -243,8 +242,8 @@ func HandleGetData(request []byte, chain *blockchain.Blockchain) {
 	}
 
 	if payload.Type == "block" {
-		blockId := binary.BigEndian.Uint64(payload.ID)
-		block := chain.GetBlockById(int(blockId))
+
+		block := chain.GetBlockByHash(string(payload.ID[:]))
 
 		SendBlock(payload.AddrFrom, block)
 	}
@@ -415,8 +414,8 @@ func RequestBlocks() {
 }
 
 func StartServer(nodeID, minerAddress string) {
-	nodeAdress = fmt.Sprintf("192.168.2.101:%s", nodeID)
-	//nodeAdress = fmt.Sprintf("192.168.2.110:%s", nodeID)
+	//nodeAdress = fmt.Sprintf("192.168.2.101:%s", nodeID)
+	nodeAdress = fmt.Sprintf("192.168.2.110:%s", nodeID)
 	minerAddress = minerAddress
 
 	ln, err := net.Listen(protocol, nodeAdress)

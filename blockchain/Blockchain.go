@@ -165,6 +165,11 @@ func (bc *Blockchain) ForwardIterator() *BlockchainForwardIterator {
 	return bcfi
 }
 
+func (bc *Blockchain) GetBlockByHash(blockHash string) *Block {
+	block := DeserializeBlock(bc.db.GetBlockByHash(blockHash))
+	return block
+}
+
 func (i *BlockchainIterator) Next() *Block {
 
 	block := DeserializeBlock(i.db.GetBlockByHash(i.currentHash))
