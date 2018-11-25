@@ -21,7 +21,7 @@ type Blockchain struct {
 	signatures  map[string]string
 }
 
-var nc p2p.NetworkController
+var nc *p2p.NetworkController
 
 type BlockchainIterator struct {
 	currentHash string
@@ -53,7 +53,7 @@ func (bc *Blockchain) GetBlocksAmount() int {
 
 func initBlockchain() *Blockchain {
 	var bc Blockchain
-	nc = p2p.NetworkController{}
+	nc = p2p.GetInstance()
 	db := database.GetDatabase()
 	if !database.IsBlockchainExists() {
 		genesis := MineGenesisBlock()
