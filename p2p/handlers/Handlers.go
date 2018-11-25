@@ -225,6 +225,15 @@ func HandleBlock(request []byte, chain *blockchain.Blockchain) {
 	blockData := payload.Block
 	block := blockchain.DeserializeBlock(blockData)
 
+	if block.GetId() > chain.GetLastBlock().GetId()+1 {
+		fmt.Println("Blockchain is outdated.. Requesting new blockchain from nearby node")
+		for _, node := range nc.KnownNodes {
+			if nc.NodeAddress != node {
+				nc.SendGetBlocks(node)
+			}
+		}
+	}
+
 	fmt.Println("Received a new Block!")
 	valid := chain.AddBlock(block)
 
