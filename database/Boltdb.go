@@ -54,8 +54,7 @@ func (d *Database) GetBlockByHash(blockHash string) []byte {
 	var blockData []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("blocks"))
-		blockHash := b.Get([]byte(blockHash))
-		data := b.Get(blockHash)
+		data := b.Get([]byte(blockHash))
 		blockData = make([]byte, len(data))
 		copy(blockData, data)
 

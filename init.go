@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/p2p"
+	"goBlockchain/blockchain"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 )
@@ -88,13 +88,15 @@ func main() {
 	////res := strings.Join(str, "")
 	////fmt.Println(res)
 	//
-	//blockchain := blockchain.GetInstance()
+	blockchain := blockchain.GetInstance()
+	block := blockchain.GetLastBlock()
+	fmt.Println(block)
 	////////
 	//blockchain.AddTransaction(tx1, sign1)
 	//blockchain.AddTransaction(tx2, sign2)
 	//blockchain.AddTransaction(tx3, sign3)
 	//blockchain.AddTransaction(tx4, sign4)
-	//////
+	////////
 	//blockchain.MineNextBlock()
 	//
 	//blockchain.MineNextBlock()
@@ -137,7 +139,7 @@ func main() {
 	//blockchain := blockchain.InitBlockchain()
 	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
 
-	p2p.StartServer("3000", "")
+	//p2p.StartServer("3000", "")
 
 	//go func() {
 	//
