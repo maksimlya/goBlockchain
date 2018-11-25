@@ -133,6 +133,7 @@ func (bc *Blockchain) MineNextBlock() {
 
 	bc.db.StoreBlock(newBlock.GetHash(), newBlock.GetId(), newBlock.Serialize())
 	bc.lastId = newBlock.GetId()
+	bc.lastHash = newBlock.GetHash()
 	for i := range transactios {
 		txHash := transactios[i].GetHash()
 		bc.db.StoreSignature(txHash, bc.signatures[txHash])
@@ -352,8 +353,10 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 
 func (bc *Blockchain) DataListener() {
 	for {
-		time.Sleep(15 * time.Second)
-		if !bc.ValidateChain() {
+		time.Sleep(5 * time.Second)
+		if bc.ValidateChain() {
+			fmt.Println("Blocks check passed successfully...")
+		} else {
 			fmt.Println("Blockchain data compromised... requesting new copy from neighbor peer...")
 			bc.lastId = 0
 			for _, node := range nc.GetKnownNodes() {
