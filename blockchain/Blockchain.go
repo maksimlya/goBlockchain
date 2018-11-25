@@ -322,9 +322,17 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 //
 //}
 
-func (bc *Blockchain) AddBlock(block *Block) { // TODO - Rework that function
-	bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
-	bc.lastId = block.GetId()
+func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that function (should work now)
+	isValid := block.ValidateBlock()
+	isValid = block.GetPreviousHash() == bc.GetLastBlock().GetHash()
+	isValid = block.GetId() == bc.GetLastBlock().GetId()+1
+
+	if isValid {
+		bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
+		bc.lastId = block.GetId()
+		bc.numOfBlocks++
+	}
+	return isValid
 }
 
 func (bc *Blockchain) GetPendingTransactionByHash(txHash string) transactions.Transaction {
