@@ -140,10 +140,9 @@ func main() {
 	//blockchain := blockchain.InitBlockchain()
 	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
 
-	go func() {
-		p2p.StartServer("3000", "")
-	}()
-	log.Fatal(webserver.Run())
+	go p2p.StartServer("3000", "")
+
+	go log.Fatal(webserver.Run())
 
 	//
 	//pubKey := "MTAxMTAxMDAwMTAxMDEwMTExAAAAAAAAAAAAAAAAAAAxMDExMTExMTAwMDAwMDAwMDAxAAAAAAAAAAAAAAAAAA=="

@@ -310,7 +310,7 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 
 func (bc *Blockchain) AddBlock(block *Block) { // TODO - Rework that function
 	bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
-	bc.lastId++
+	bc.lastId = block.GetId()
 }
 
 func (bc *Blockchain) GetBlockHashes() [][]byte {
