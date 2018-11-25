@@ -3,6 +3,7 @@ package blockchain
 import (
 	"fmt"
 	"goBlockchain/database"
+	"goBlockchain/p2p"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"sync"
@@ -18,6 +19,8 @@ type Blockchain struct {
 	pendingTx   []transactions.Transaction
 	signatures  map[string]string
 }
+
+var nc p2p.NetworkController
 
 type BlockchainIterator struct {
 	currentHash string
@@ -45,6 +48,7 @@ func (bc *Blockchain) CloseDB() {
 
 func initBlockchain() *Blockchain {
 	var bc Blockchain
+	nc = p2p.NetworkController{}
 	db := database.GetDatabase()
 	if !database.IsBlockchainExists() {
 		genesis := MineGenesisBlock()
@@ -118,6 +122,9 @@ func (bc *Blockchain) MineNextBlock() {
 	}
 	bc.pendingTx = bc.pendingTx[amountOfTx:] // TODO -  improve for dynamic use
 	newBlock := MineBlock(lastBlock.GetId()+1, bc.difficulty, string(lastBlock.GetHash()), transactios)
+
+	nc.BroadcastBlock(newBlock.Serialize())
+
 	bc.db.StoreBlock(newBlock.GetHash(), newBlock.GetId(), newBlock.Serialize())
 	bc.lastId = newBlock.GetId()
 	for i := range transactios {
@@ -311,6 +318,15 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 func (bc *Blockchain) AddBlock(block *Block) { // TODO - Rework that function
 	bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
 	bc.lastId = block.GetId()
+}
+
+func (bc *Blockchain) GetPendingTransactionByHash(txHash string) transactions.Transaction {
+	for _, tx := range bc.GetPendingTransactions() {
+		if tx.GetHash() == txHash {
+			return tx
+		}
+	}
+	return transactions.GetNil()
 }
 
 func (bc *Blockchain) GetBlockHashes() [][]byte {

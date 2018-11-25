@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"goBlockchain/p2p"
+	"goBlockchain/p2p/handlers"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"goBlockchain/webserver"
@@ -140,7 +140,7 @@ func main() {
 	//blockchain := blockchain.InitBlockchain()
 	//fmt.Println(blockchain.GetBlockById(1).GetMerkleTree().PrintLevels())
 
-	go p2p.StartServer("3000", "")
+	go handlers.StartServer("3000")
 
 	go log.Fatal(webserver.Run())
 
