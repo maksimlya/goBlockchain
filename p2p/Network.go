@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"goBlockchain/blockchain"
+	"goBlockchain/imports/death"
 	"goBlockchain/transactions"
 	"io"
 	"io/ioutil"
