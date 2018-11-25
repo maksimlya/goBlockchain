@@ -343,7 +343,9 @@ func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that functi
 	if isValid {
 		bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
 		bc.lastId = block.GetId()
+		bc.lastHash = block.GetHash()
 		bc.numOfBlocks++
+
 	}
 	return isValid
 }
