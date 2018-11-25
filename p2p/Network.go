@@ -58,7 +58,7 @@ const (
 var (
 	nodeAdress      string
 	minerAddress    string
-	KnownNodes      = []string{"localhost:3000"}
+	KnownNodes      = []string{"192.168.2.101:3000"}
 	blocksInTransit = [][]byte{}
 	memoryPool      = make(map[string]transactions.Transaction)
 )
@@ -414,7 +414,7 @@ func RequestBlocks() {
 }
 
 func StartServer(nodeID, minerAddress string) {
-	nodeAdress = fmt.Sprintf("localhost:%s", nodeID)
+	nodeAdress = fmt.Sprintf("192.168.2.101:%s", nodeID)
 	minerAddress = minerAddress
 
 	ln, err := net.Listen(protocol, nodeAdress)
