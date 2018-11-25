@@ -106,14 +106,13 @@ func HandleVersion(request []byte, chain *blockchain.Blockchain) {
 	if err != nil {
 		log.Panic(err)
 	}
-	block := chain.GetLastBlock()
-	bestHeight := block.GetId() + 1
+	bestHeight := chain.GetBlocksAmount()
 	otherHeight := payload.BestHeight
 
 	if bestHeight < otherHeight {
 		p2p.SendGetBlocks(payload.AddrFrom)
 	} else if bestHeight > otherHeight {
-		p2p.SendVersion(payload.AddrFrom, chain.GetLastBlock().GetId())
+		p2p.SendVersion(payload.AddrFrom, chain.GetBlocksAmount())
 	} else {
 		fmt.Printf("Current Blockchain is up-to-date with %s peer", payload.AddrFrom)
 	}
@@ -264,7 +263,7 @@ func StartServer(nodeID string) {
 	defer chain.CloseDB()
 
 	if p2p.NodeAdress != p2p.KnownNodes[0] {
-		p2p.SendVersion(p2p.KnownNodes[0], chain.GetLastBlock().GetId())
+		p2p.SendVersion(p2p.KnownNodes[0], chain.GetBlocksAmount())
 	}
 
 	for {

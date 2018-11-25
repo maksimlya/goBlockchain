@@ -46,6 +46,10 @@ func (bc *Blockchain) CloseDB() {
 	bc.db.CloseDB()
 }
 
+func (bc *Blockchain) GetBlocksAmount() int {
+	return bc.lastId + 1
+}
+
 func initBlockchain() *Blockchain {
 	var bc Blockchain
 	nc = p2p.NetworkController{}
