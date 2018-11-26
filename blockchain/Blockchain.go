@@ -10,32 +10,39 @@ import (
 	"time"
 )
 
+const (
+	difficulty  int = 16
+	maxSizeOfTx int = 4
+)
+
+var (
+	nc       *p2p.NetworkController // Network controller to handle p2p system
+	instance *Blockchain            // Instance of this blockchain object
+	once     sync.Once              // To sync goroutines at critical parts
+)
+
+// Main system's structure. Contains last block's hash and last block's id, reference to database, mempool of pending transactions, their signatures and some other data.
 type Blockchain struct {
-	chain       []Block
-	lastHash    string
-	lastId      int
-	db          database.Database
-	numOfBlocks int
-	difficulty  int
-	pendingTx   []transactions.Transaction
-	signatures  map[string]string
+	lastHash   string
+	lastId     int
+	db         *database.Database
+	pendingTx  []transactions.Transaction
+	signatures map[string]string
 }
 
-var nc *p2p.NetworkController
-
+// Since the data stored on a database, we will traverse through it
+// using Iterators.
 type BlockchainIterator struct {
 	currentHash string
-	db          database.Database
+	db          *database.Database
 }
 type BlockchainForwardIterator struct {
 	currentId int
-	db        database.Database
+	db        *database.Database
 }
 
-var instance *Blockchain
-var once sync.Once
-var maxSizeOfTx = 4
-
+// Singleton design pattern to have only one instance of the blockchain
+// across the program
 func GetInstance() *Blockchain {
 	once.Do(func() {
 		instance = initBlockchain()
@@ -44,70 +51,21 @@ func GetInstance() *Blockchain {
 	return instance
 }
 
-func (bc *Blockchain) CloseDB() {
-	bc.db.CloseDB()
-}
-
-func (bc *Blockchain) GetBlocksAmount() int {
-	return bc.lastId + 1
-}
-
+// Function that creates the blockchain if it does not exists yet
 func initBlockchain() *Blockchain {
 	var bc Blockchain
 	nc = p2p.GetInstance()
-	db := database.GetDatabase()
-	if !database.IsBlockchainExists() {
+	db := database.GetInstance()
+	if !database.IsBlockchainExists() { // Checks whether the blockchain stored on database. If not, mine genesis block and create the blockchain on it.
 		genesis := MineGenesisBlock()
-		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, difficulty: 16, signatures: make(map[string]string)}
+		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, signatures: make(map[string]string)}
 		bc.db.StoreNewBlockchain(genesis.GetHash(), genesis.GetId(), genesis.Serialize())
 	} else {
-		lastBlock := DeserializeBlock(db.GetLastBlock())
-		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, difficulty: 16, signatures: make(map[string]string)}
+		lastBlock := DeserializeBlock(db.GetLastBlock()) // If blockchain does exists on database, create one in memory based on the read data.
+		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, signatures: make(map[string]string)}
 	}
-
 	return &bc
-
 }
-
-func (bc *Blockchain) GetPendingTransactions() []transactions.Transaction {
-	return bc.pendingTx
-}
-
-func (bc *Blockchain) getSignature(key string) string {
-	return bc.signatures[key]
-}
-
-func (bc Blockchain) GetSignature(txHash string) string {
-	signature := bc.db.GetSignatureByHash(txHash)
-	return signature
-}
-
-func (bc *Blockchain) GetAllSignatures() map[string]string {
-	sigs := make(map[string]string, bc.lastId*4)
-	it := bc.ForwardIterator()
-	for {
-		block := it.Next()
-		for i := range block.GetTransactions() {
-			tx := block.GetTransactions()[i]
-			fmt.Println(tx)
-			sigs[block.GetTransactions()[i].Hash] = bc.GetSignature(block.GetTransactions()[i].Hash)
-		}
-		if block.GetId() == bc.lastId {
-			break
-		}
-	}
-
-	return sigs
-}
-
-//func (bc Blockchain) InsertToChain(block Block) {
-//	var remainingTx []transactions.Transaction
-//	for i := 0; i < len(bc.pendingTx); i += maxSizeOfTx {
-//		remainingTx = bc.pendingTx[i : i+maxSizeOfTx]
-//		bc.chain = append(bc.chain, MineBlock(0, bc.difficulty, bc.GetLastBlock().GetHash(), remainingTx))
-//		bc.numOfBlocks++
-//	}
-//}
 
 func (bc *Blockchain) MineNextBlock() {
 
@@ -127,7 +85,7 @@ func (bc *Blockchain) MineNextBlock() {
 		amountOfTx++
 	}
 	bc.pendingTx = bc.pendingTx[amountOfTx:] // TODO -  improve for dynamic use
-	newBlock := MineBlock(lastBlock.GetId()+1, bc.difficulty, string(lastBlock.GetHash()), transactios)
+	newBlock := MineBlock(lastBlock.GetId()+1, difficulty, string(lastBlock.GetHash()), transactios)
 
 	nc.BroadcastBlock(newBlock.Serialize())
 
@@ -140,20 +98,76 @@ func (bc *Blockchain) MineNextBlock() {
 	}
 }
 
-func (bc Blockchain) SearchBlock(hash string) Block {
-	var b Block
-	for i := 0; i < bc.numOfBlocks; i++ {
-		if hash == bc.chain[i].GetHash() {
-			return bc.chain[i]
+/*==============================================Getters for various blockchain members================================*/
+func (bc *Blockchain) GetBlocksAmount() int {
+	return bc.lastId + 1
+}
+func (bc *Blockchain) GetPendingTransactions() []transactions.Transaction {
+	return bc.pendingTx
+}
+func (bc Blockchain) GetSignature(txHash string) string {
+	signature := bc.db.GetSignatureByHash(txHash)
+	return signature
+}
+func (bc *Blockchain) GetAllSignatures() map[string]string {
+	sigs := make(map[string]string, bc.lastId*4)
+	it := bc.ForwardIterator()
+	for {
+		block := it.Next()
+		for i := range block.GetTransactions() {
+			tx := block.GetTransactions()[i]
+			fmt.Println(tx)
+			sigs[block.GetTransactions()[i].Hash] = bc.GetSignature(block.GetTransactions()[i].Hash)
+		}
+		if block.GetId() == bc.lastId {
+			break
 		}
 	}
-	return b
+	return sigs
 }
-
 func (bc Blockchain) GetBlockById(id int) *Block {
 	block := DeserializeBlock(bc.db.GetBlockById(id))
 	return block
 }
+func (bc *Blockchain) GetLastBlock() *Block {
+	it := bc.Iterator()
+	return it.Next()
+}
+func (bc *Blockchain) GetBlockByHash(blockHash string) *Block {
+	block := DeserializeBlock(bc.db.GetBlockByHash(blockHash))
+	return block
+}
+func (bc *Blockchain) GetPendingTransactionByHash(txHash string) transactions.Transaction {
+	for _, tx := range bc.GetPendingTransactions() {
+		if tx.GetHash() == txHash {
+			return tx
+		}
+	}
+	return transactions.GetNil()
+}
+func (bc *Blockchain) GetBlockHashes() [][]byte { // TODO - simplify function by simply traversing through block keys in database
+	it := bc.Iterator()
+	var hashes = make([][]byte, bc.GetLastBlock().GetId()+1)
+	for {
+		block := it.Next()
+		hashes[block.GetId()] = append(hashes[block.GetId()], []byte(block.GetHash())...)
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	return hashes
+}
+
+/*====================================================================================================================*/
+
+//func (bc Blockchain) InsertToChain(block Block) {	// TODO - Maybe such function can be used to replace single faulty block in the database
+//	var remainingTx []transactions.Transaction
+//	for i := 0; i < len(bc.pendingTx); i += maxSizeOfTx {
+//		remainingTx = bc.pendingTx[i : i+maxSizeOfTx]
+//		bc.chain = append(bc.chain, MineBlock(0, bc.difficulty, bc.GetLastBlock().GetHash(), remainingTx))
+//		bc.numOfBlocks++
+//	}
+//}
 
 func (bc *Blockchain) AddTransaction(transaction transactions.Transaction, signature string) {
 	if !security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
@@ -161,11 +175,6 @@ func (bc *Blockchain) AddTransaction(transaction transactions.Transaction, signa
 	}
 	bc.signatures[transaction.GetHash()] = signature
 	bc.pendingTx = append(bc.pendingTx, transaction)
-}
-
-func (bc *Blockchain) GetLastBlock() *Block {
-	it := bc.Iterator()
-	return it.Next()
 }
 
 func (bc *Blockchain) Iterator() *BlockchainIterator {
@@ -177,11 +186,6 @@ func (bc *Blockchain) ForwardIterator() *BlockchainForwardIterator {
 	bcfi := &BlockchainForwardIterator{0, bc.db}
 
 	return bcfi
-}
-
-func (bc *Blockchain) GetBlockByHash(blockHash string) *Block {
-	block := DeserializeBlock(bc.db.GetBlockByHash(blockHash))
-	return block
 }
 
 func (i *BlockchainIterator) Next() *Block {
@@ -198,32 +202,6 @@ func (i *BlockchainForwardIterator) Next() *Block {
 
 	return block
 }
-
-//func (bc *blockchain) String() string {
-//	it := bc.Iterator()
-//	s := ""
-//	for {
-//		block := it.Next()
-//		s += "{\n"
-//		s += "Block Id: " + strconv.Itoa(block.GetId()) + "\n"
-//		s += "Block hash: " + block.GetHash() + "\n"
-//		s += "Previous Hash: " + block.GetPreviousHash() + "\n"
-//		s += "Nonce: " + strconv.Itoa(block.GetNonce()) + "\n"
-//		s += "Timestamp: " + block.GetTimestamp() + "\n"
-//		s += "Merkle Root: " + block.GetMerkleRoot() + "\n"
-//		s += "transactions: {\n"
-//		for _, j := range block.GetTransactions() {
-//			s += j.String()
-//		}
-//		s += "}\n"
-//		s += "};\n"
-//
-//		if block.GetPreviousHash() == "0" {
-//			break
-//		}
-//	}
-//	return s
-//}
 
 func (bc *Blockchain) ValidateChain() bool {
 	it := bc.Iterator()
@@ -344,36 +322,13 @@ func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that functi
 		bc.db.StoreBlock(block.GetHash(), block.GetId(), block.Serialize())
 		bc.lastId = block.GetId()
 		bc.lastHash = block.GetHash()
-		bc.numOfBlocks++
-
 	}
 	return isValid
 }
 
-func (bc *Blockchain) GetPendingTransactionByHash(txHash string) transactions.Transaction {
-	for _, tx := range bc.GetPendingTransactions() {
-		if tx.GetHash() == txHash {
-			return tx
-		}
-	}
-	return transactions.GetNil()
-}
-
-func (bc *Blockchain) GetBlockHashes() [][]byte {
-	it := bc.Iterator()
-	var hashes = make([][]byte, bc.GetLastBlock().GetId()+1)
-	for {
-		block := it.Next()
-		hashes[block.GetId()] = append(hashes[block.GetId()], []byte(block.GetHash())...)
-
-		if block.GetPreviousHash() == "0" {
-			break
-		}
-	}
-
-	return hashes
-}
-
+// Funtion that runs in it's own goroutine and checks whether the blockchain still valid.
+// If by any reason the fail will check, the whole blockchain will be deleted and a copy
+// of it will be requested from nearby node //	TODO - replace only the faulty blocks to reduce network bandwidth
 func (bc *Blockchain) DataListener() {
 	for {
 		time.Sleep(15 * time.Second)
@@ -385,8 +340,6 @@ func (bc *Blockchain) DataListener() {
 					nc.SendVersion(node, bc.lastId)
 				}
 			}
-
 		}
 	}
-
 }

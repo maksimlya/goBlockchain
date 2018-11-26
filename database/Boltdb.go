@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"goBlockchain/imports/bolt"
 	"strconv"
+	"sync"
 )
+
+var instance *Database // Instance of this database object
+var once sync.Once     // To sync goroutines at critical parts
 
 type Database struct {
 	db *bolt.DB
@@ -27,8 +31,11 @@ func (d *Database) GetSignatureByHash(txHash string) string {
 	return sigData
 }
 
-func (d *Database) CloseDB() {
-	d.db.Close()
+func GetInstance() *Database {
+	once.Do(func() {
+		instance = GetDatabase()
+	})
+	return instance
 }
 
 func (d *Database) GetBlockById(blockId int) []byte {
@@ -140,10 +147,10 @@ func (d *Database) StoreSignature(txHash string, signature string) {
 	d.db.Close()
 }
 
-func GetDatabase() Database {
+func GetDatabase() *Database {
 	db, _ := bolt.Open("Blockchain.db", 0600, nil)
 	db.Close()
-	return Database{db: db}
+	return &Database{db: db}
 }
 
 func IsBlockchainExists() bool {

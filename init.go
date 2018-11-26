@@ -6,6 +6,8 @@ import (
 	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"goBlockchain/utility"
+	"goBlockchain/webserver"
+	"log"
 )
 
 //CalculateHash hashes the values of a TestContent

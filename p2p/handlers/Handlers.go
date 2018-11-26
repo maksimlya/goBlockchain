@@ -274,7 +274,6 @@ func StartServer(nodeID string) {
 	defer ln.Close()
 
 	chain := blockchain.GetInstance()
-	defer chain.CloseDB()
 
 	if nc.GetNodeAddress() != nc.GetKnownNodes()[0] {
 		nc.SendVersion(nc.GetKnownNodes()[0], chain.GetBlocksAmount())
