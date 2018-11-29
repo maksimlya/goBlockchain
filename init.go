@@ -51,7 +51,7 @@ func main() {
 	//fmt.Println(bc.GetLastBlock())
 	//
 
-	go handlers.StartServer("3000")
+	go handlers.StartServer()
 	//
 	go log.Fatal(webserver.Run())
 

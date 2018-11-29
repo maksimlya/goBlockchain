@@ -101,7 +101,7 @@ func (bc *Blockchain) MineNextBlock() {
 	}
 }
 
-func (bc *Blockchain) BlockIsMined(block *Block) {
+func (bc *Blockchain) BlockFound(block *Block) {
 
 }
 

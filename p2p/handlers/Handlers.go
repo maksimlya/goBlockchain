@@ -261,7 +261,7 @@ func RequestBlocks() {
 	}
 }
 
-func StartServer(nodeID string) {
+func StartServer() {
 	nc = p2p.GetInstance()
 	nc.AppendKnownNode([]string{"localhost:3000"})
 	nc.SetNodeAddress("localhost:3000")
