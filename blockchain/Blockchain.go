@@ -11,14 +11,16 @@ import (
 )
 
 const (
-	difficulty  int = 16
-	maxSizeOfTx int = 4
+	difficulty  int = 16 // Amount of 0's in binary format to aim for when mining a block.
+	maxSizeOfTx int = 4  // Amount of tx's per block.
 )
 
 var (
-	nc       *p2p.NetworkController // Network controller to handle p2p system
-	instance *Blockchain            // Instance of this blockchain object
-	once     sync.Once              // To sync goroutines at critical parts
+	nc           *p2p.NetworkController         // Network controller to interact with p2p system.
+	instance     *Blockchain                    // Instance of this blockchain object
+	once         sync.Once                      // To sync goroutines at critical parts
+	pendingBlock bool                   = false // TODO - test
+
 )
 
 // Main system's structure. Contains last block's hash and last block's id, reference to database, mempool of pending transactions, their signatures and some other data.
@@ -26,8 +28,8 @@ type Blockchain struct {
 	lastHash   string
 	lastId     int
 	db         *database.Database
-	pendingTx  []transactions.Transaction
-	signatures map[string]string
+	pendingTx  []transactions.Transaction // Mempool of pending transactions.
+	signatures map[string]string          // Signatures to verify the transactions in network.
 }
 
 // Since the data stored on a database, we will traverse through it
@@ -61,19 +63,20 @@ func initBlockchain() *Blockchain {
 		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, signatures: make(map[string]string)}
 		bc.db.StoreNewBlockchain(genesis.GetHash(), genesis.GetId(), genesis.Serialize())
 	} else {
-		lastBlock := DeserializeBlock(db.GetLastBlock()) // If blockchain does exists on database, create one in memory based on the read data.
-		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, signatures: make(map[string]string)}
+		lastBlock := DeserializeBlock(db.GetLastBlock())                                                                       // If blockchain does exists on database, create one in memory based on the read data.
+		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, signatures: make(map[string]string)} // TODO - rework signatures mempool to sync over multiple peers.
 	}
 	return &bc
 }
 
+// Function to aim mining next block. It packs {maxSizeOfTx} transactions from mempool and tries to find block hash based on required difficulty.
 func (bc *Blockchain) MineNextBlock() {
-
 	lastBlock := DeserializeBlock(bc.db.GetLastBlock())
-
 	var transactios []transactions.Transaction
+	pendingBlock = false
+
 	amountOfTx := 0
-	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ { // TODO - improve pending transactions model/data structure
+	for i := 0; i < maxSizeOfTx && i < len(bc.pendingTx); i++ { // TODO - improve pending transactions model/data structure (Maybe Mutex is needed??)
 		if bc.pendingTx[i].IsNil() {
 			amountOfTx++
 			continue
@@ -96,6 +99,10 @@ func (bc *Blockchain) MineNextBlock() {
 		txHash := transactios[i].GetHash()
 		bc.db.StoreSignature(txHash, bc.signatures[txHash])
 	}
+}
+
+func (bc *Blockchain) BlockIsMined(block *Block) {
+
 }
 
 /*==============================================Getters for various blockchain members================================*/
