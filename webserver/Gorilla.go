@@ -6,6 +6,7 @@ import (
 	"goBlockchain/imports/mux"
 	"goBlockchain/security"
 	"goBlockchain/transactions"
+	"goBlockchain/webserver/cors"
 	"io"
 	"log"
 	"net/http"
@@ -22,10 +23,11 @@ type Message struct {
 func Run() error {
 	muxServer := makeMuxRouter()
 	httpPort := "8080"
+	handler := cors.Default().Handler(muxServer)
 	log.Println("Listening on ", httpPort)
 	s := &http.Server{
 		Addr:           ":" + httpPort,
-		Handler:        muxServer,
+		Handler:        handler,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,

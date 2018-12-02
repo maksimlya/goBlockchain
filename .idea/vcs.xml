@@ -4,6 +4,5 @@
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/imports/bolt" vcs="" />
-    <mapping directory="$PROJECT_DIR$/vrecan/death.v3" vcs="Git" />
   </component>
 </project>
