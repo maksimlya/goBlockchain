@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -43,7 +44,7 @@ func Run() error {
 func makeMuxRouter() http.Handler {
 	muxRouter := mux.NewRouter()
 	muxRouter.HandleFunc("/", handleGetBlockchain).Methods("GET")
-	muxRouter.HandleFunc("/transactions", handleGetTransactions).Methods("GET")
+	muxRouter.HandleFunc("/transactions/{key}", handleGetTransactions).Methods("GET")
 	muxRouter.HandleFunc("/merkle", handleGetMerkle).Methods("GET")
 	muxRouter.HandleFunc("/signatures", handleGetSignatures).Methods("GET")
 	muxRouter.HandleFunc("/pendingTransactions", handleGetPending).Methods("GET")
@@ -113,11 +114,11 @@ func handleGetSignatures(w http.ResponseWriter, r *http.Request) {
 
 func handleGetTransactions(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
-	blocks := bc.TraverseForwardBlockchain()
+	blockId, _ := strconv.Atoi(mux.Vars(r)["key"])
+	block := bc.GetBlockById(blockId)
 	var txs []transactions.Transaction
-	for i := range blocks {
-		txs = append(txs, blocks[i].GetTransactions()...)
-	}
+	txs = append(txs, block.GetTransactions()...)
+
 	bytes, err := json.MarshalIndent(txs, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
