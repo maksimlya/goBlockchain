@@ -340,7 +340,7 @@ func (bc *Blockchain) DataListener() {
 	for {
 		time.Sleep(15 * time.Second)
 		if !bc.ValidateChain() {
-			fmt.Println("Blockchain data compromised... requesting new copy from neighbor peer...")
+			fmt.Println("Blockchain data was compromised... requesting new copy from neighbor peer...")
 			bc.lastId = 0
 			for _, node := range nc.GetKnownNodes() {
 				if nc.GetNodeAddress() != node {

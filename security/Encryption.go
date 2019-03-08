@@ -3,36 +3,28 @@ package security
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"math"
+	"encoding/hex"
+	"math/big"
 	"strconv"
 	"strings"
 )
 
-func Encrypt(message int, pubKey string) byte {
-	encoder := base64.URLEncoding
+func encrypt(slice *big.Int, pubKey string) []byte {
+	pubLength, _ := strconv.Atoi(pubKey[10:11])
+	e := pubKey[11 : pubLength+11]
+	n := pubKey[:10] + pubKey[pubLength+11:]
 
-	// Decode string from base64 format
-	decode, _ := encoder.DecodeString(pubKey)
+	eValue, _ := new(big.Int).SetString(e, 16)
 
-	// 0-31 bits are the 'd' element of rsa encryption
-	d := string(decode[:32])
-	d = strings.Trim(d, "\x00")
+	eString := eValue.Text(2)
 
-	// 32-63 are the 'n' element of rsa encryption
-	n := string(decode[32:])
-	n = strings.Trim(n, "\x00")
+	nValue, _ := new(big.Int).SetString(n, 16)
 
-	// parse binary number from string
-	nValue, _ := strconv.ParseInt(n, 2, 64)
+	ciph := calcModuluEx(eString, slice, nValue)
 
-	// integer value of 'n' component
-	integerNValue := int(nValue)
+	g := ciph.Bytes()
 
-	// Calculate modulu (encrypted element of the equasion)
-	ciph := calcModulu(d, message, integerNValue)
-
-	return byte(ciph)
-
+	return g
 }
 
 //Signs message with calculated private key based on given hash
@@ -45,10 +37,13 @@ func Sign(message string, hash string) string {
 	var signedBytes []string
 
 	// Run through bytes of message, sign each of them and store it all in bytes array
+	key := GeneratePrivKey(hash)
+
 	for i := 0; i < len(byteMsg); i++ {
-		signedBytes = append(signedBytes, sign(int(byteMsg[i]), hash))
+		signedBytes = append(signedBytes, sign(int(byteMsg[i]), key))
 	}
 	c := base64.URLEncoding.EncodeToString([]byte(strings.Join(signedBytes, ",")))
+
 	enc := sha256.New()
 	enc.Write([]byte(c))
 	j := base64.URLEncoding.EncodeToString(enc.Sum(nil))
@@ -72,244 +67,162 @@ func VerifySignature(signature string, message string, pubKey string) bool {
 	var jj []byte
 
 	for i := 0; i < len(pp); i++ {
-		ii, _ := strconv.Atoi(pp[i])
-		jj = append(jj, Encrypt(ii, pubKey))
+		ii, _ := big.NewInt(0).SetString(pp[i], 10)
+		jj = append(jj, encrypt(ii, pubKey)...)
 	}
-	return string(jj) == message
+	val := string(jj)
+	return val == message
 }
 
-func sign(slice int, hash string) string {
-	encoder := base64.URLEncoding
-	sha := sha256.New()
-	sha.Write([]byte(hash))
-	temp := sha.Sum(nil)
-	var y float64 = 0
-	for i := 0; i < len(temp); i++ {
-		y += math.Pow(float64(temp[i]), float64(2))
-	}
-	aNum := int((y) / 1000)
-	bNum := int((y / 2) / 1000)
+func sign(slice int, key string) string {
 
-	for !isPrime(aNum) {
-		aNum++
-	}
-	for !isPrime(bNum) {
-		bNum++
-	}
+	privLength, _ := hex.DecodeString(key[10:12])
+	d := key[:10] + key[12:privLength[0]+2] // TODO - fix later
 
-	n := int((aNum * bNum))
-	f := int((aNum - 1) * (bNum - 1))
+	n := key[privLength[0]+2:]
 
-	e := 12 // Must be unique personal number
-	for Gcd(e, f) != 1 {
-		e++
-	}
+	dValue, _ := new(big.Int).SetString(d, 16)
 
-	d := 0
-	for (d*e)%f != 1 {
-		d++
-	}
+	dString := dValue.Text(2)
 
-	key := int64(e)
+	nValue, _ := new(big.Int).SetString(n, 16)
 
-	binaryValue := strconv.FormatInt(key, 2)
-	h := []byte(binaryValue)
-	var arr [64]byte
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i] = 48
-		} else {
-			arr[i] = 49
-		}
-	}
+	sliceInt := big.NewInt(int64(slice))
 
-	fiFunc := int64(n)
-	binaryValue = strconv.FormatInt(fiFunc, 2)
-	h = []byte(binaryValue)
+	ciph := calcModuluEx(dString, sliceInt, nValue)
 
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i+32] = 48
-		} else {
-			arr[i+32] = 49
-		}
-	}
+	g := ciph.String()
 
-	var tempArr []byte = arr[:]
-
-	final := encoder.EncodeToString(tempArr)
-
-	decode, _ := encoder.DecodeString(final)
-
-	newD := string(decode[:32])
-	newD = strings.Trim(newD, "\x00")
-
-	newN := string(decode[32:])
-	newN = strings.Trim(newN, "\x00")
-
-	nValue, _ := strconv.ParseInt(newN, 2, 64)
-
-	i := int(nValue)
-
-	ciph := calcModulu(newD, slice, i)
-
-	g := strconv.Itoa(ciph)
-
-	return string(g)
+	return g
 
 }
 
-func calcModulu(num string, base int, mod int) int {
-	f := 1
+func calcModuluEx(num string, base *big.Int, mod *big.Int) *big.Int {
+	f := big.NewInt(1)
 	for i := len(num) - 1; i >= 0; i-- {
-		f = (f * f) % mod
+		f = f.Mul(f, f)
+		f = new(big.Int).Mod(f, mod)
 		if num[len(num)-i-1] == 49 {
-			f = (f * base) % mod
+			f = f.Mul(f, base)
+			f = new(big.Int).Mod(f, mod)
 		}
 	}
-
 	return f
 
-	return f
 }
 
 func GenerateKey(hash string) string {
-	encoder := base64.URLEncoding
 	sha := sha256.New()
 	sha.Write([]byte(hash))
 	temp := sha.Sum(nil)
-	var y float64 = 0
+	y := big.NewInt(0)
+	one := big.NewInt(1)
 	for i := 0; i < len(temp); i++ {
-		y += math.Pow(float64(temp[i]), float64(2))
+		temp := big.NewInt(int64(temp[i]))
+		exp := big.NewInt(26)
+		y.Add(y, y.Exp(temp, exp, nil))
 	}
-	aNum := int((y) / 1000)
-	bNum := int((y / 2) / 1000)
+	aNum := y
+	divider := big.NewInt(2)
+	bNum := new(big.Int).Div(y, divider)
 
-	for !isPrime(aNum) {
-		aNum++
-	}
-	for !isPrime(bNum) {
-		bNum++
-	}
-
-	n := int((aNum * bNum))
-	f := int((aNum - 1) * (bNum - 1))
-
-	e := 12 // Must be unique personal number
-	for Gcd(e, f) != 1 {
-		e++
+	for !aNum.ProbablyPrime(0) {
+		aNum = aNum.Add(aNum, one)
 	}
 
-	d := 0
-	for (d*e)%f != 1 {
-		d++
+	for !bNum.ProbablyPrime(0) {
+		bNum = bNum.Add(bNum, one)
 	}
 
-	pubKey := int64(d)
+	n := new(big.Int).Mul(aNum, bNum)
 
-	binaryValue := strconv.FormatInt(pubKey, 2)
-	h := []byte(binaryValue)
-	var arr [64]byte
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i] = 48
-		} else {
-			arr[i] = 49
-		}
+	f := new(big.Int).Mul(aNum.Sub(aNum, one), bNum.Sub(bNum, one))
+
+	e := big.NewInt(12) // Must be unique personal number
+
+	z := new(big.Int).GCD(nil, nil, e, f)
+
+	for !(z.Int64() == 1) {
+		e = e.Add(e, one)
+		z = new(big.Int).GCD(nil, nil, e, f)
 	}
 
-	fiFunc := int64(n)
-	binaryValue = strconv.FormatInt(fiFunc, 2)
-	h = []byte(binaryValue)
+	d := big.NewInt(0)
 
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i+32] = 48
-		} else {
-			arr[i+32] = 49
-		}
-	}
+	d = Eclidian(e, d, f)
 
-	var tempArr []byte = arr[:]
+	nFunc := n.Text(16)
 
-	final := encoder.EncodeToString(tempArr)
-	return string(final)
+	publicValue := e.Text(16)
+
+	publicLength := strconv.Itoa(len(publicValue))
+
+	return nFunc[:10] + publicLength + publicValue + nFunc[10:]
 }
 
 func GeneratePrivKey(hash string) string {
-	encoder := base64.URLEncoding
-
-	temp := []byte(hash)
-	y := 0
-	for i := 0; i < len(hash); i++ {
-		y += int(temp[i])
+	sha := sha256.New()
+	sha.Write([]byte(hash))
+	temp := sha.Sum(nil)
+	y := big.NewInt(0)
+	one := big.NewInt(1)
+	for i := 0; i < len(temp); i++ {
+		temp := big.NewInt(int64(temp[i]))
+		exp := big.NewInt(26)
+		y.Add(y, y.Exp(temp, exp, nil))
 	}
 	aNum := y
-	bNum := y / 2
+	divider := big.NewInt(2)
+	bNum := new(big.Int).Div(y, divider)
 
-	for !isPrime(aNum) {
-		aNum++
-	}
-	for !isPrime(bNum) {
-		bNum++
+	for !aNum.ProbablyPrime(0) {
+		aNum = aNum.Add(aNum, one)
 	}
 
-	n := aNum * bNum
-	f := (aNum - 1) * (bNum - 1)
-
-	e := 12 // Must be unique personal number
-	for Gcd(e, f) != 1 {
-		e++
+	for !bNum.ProbablyPrime(0) {
+		bNum = bNum.Add(bNum, one)
 	}
 
-	d := 0
-	for (d*e)%f != 1 {
-		d++
+	n := new(big.Int).Mul(aNum, bNum)
+	f := new(big.Int).Mul(aNum.Sub(aNum, one), bNum.Sub(bNum, one))
+
+	e := big.NewInt(12) // Must be unique personal number
+
+	z := new(big.Int).GCD(nil, nil, e, f)
+	for !(z.Int64() == 1) {
+		e = e.Add(e, one)
+		z = new(big.Int).GCD(nil, nil, e, f)
 	}
 
-	pubKey := int64(e)
+	d := big.NewInt(0)
 
-	binaryValue := strconv.FormatInt(pubKey, 2)
-	h := []byte(binaryValue)
-	var arr [64]byte
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i] = 48
-		} else {
-			arr[i] = 49
-		}
-	}
+	d = Eclidian(e, d, f)
 
-	fiFunc := int64(n)
-	binaryValue = strconv.FormatInt(fiFunc, 2)
-	h = []byte(binaryValue)
+	nFunc := n.Text(16)
 
-	for i := 0; i < len(binaryValue); i++ {
-		if h[i] == 48 {
-			arr[i+32] = 48
-		} else {
-			arr[i+32] = 49
-		}
-	}
+	privateValue := d.Text(16)
 
-	var tempArr []byte = arr[:]
+	privLength := strconv.FormatInt(int64(len(privateValue)), 16)
+	return privateValue[:10] + privLength + privateValue[10:] + nFunc
 
-	final := encoder.EncodeToString(tempArr)
-	return string(final)
 }
 
-func isPrime(value int) bool {
-	for i := 2; i <= int(math.Floor(float64(value)/2)); i++ {
-		if value%i == 0 {
-			return false
+func Eclidian(e, d, f *big.Int) *big.Int {
+	k := big.NewInt(0)
+	one := big.NewInt(1)
+	t := new(big.Int).Mul(f, k)
+	t = new(big.Int).Add(t, one)
+	test := new(big.Int).Mod(t, e)
+
+	for !(test.Int64() == 0) {
+		k.SetInt64(k.Int64() + 1)
+		tst := new(big.Int).Mul(f, k)
+		tst = new(big.Int).Add(tst, one)
+		test = new(big.Int).Mod(tst, e)
+
+		if test.Int64() == 0 {
+			d = tst.Div(tst, e)
 		}
 	}
-	return value > 1
-}
-
-func Gcd(x, y int) int {
-	for y != 0 {
-		x, y = y, x%y
-	}
-	return x
+	return d
 }
