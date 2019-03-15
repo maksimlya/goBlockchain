@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"goBlockchain/blockchain"
 	"goBlockchain/imports/mux"
-	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"goBlockchain/webserver/cors"
 	"io"
@@ -19,6 +18,14 @@ type Message struct {
 	To     string
 	Amount int
 	Tag    string
+}
+type Response struct {
+	TxHash string
+}
+
+type AddTransaction struct {
+	TxHash    string
+	Signature string
 }
 
 func Run() error {
@@ -48,6 +55,7 @@ func makeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/merkle", handleGetMerkle).Methods("GET")
 	muxRouter.HandleFunc("/signatures", handleGetSignatures).Methods("GET")
 	muxRouter.HandleFunc("/pendingTransactions", handleGetPending).Methods("GET")
+	muxRouter.HandleFunc("/newTransaction", handleNewTransaction).Methods("POST")
 	muxRouter.HandleFunc("/addTransaction", handleAddTransaction).Methods("POST")
 	muxRouter.HandleFunc("/mineBlock", handleMineBlock).Methods("POST")
 	return muxRouter
@@ -56,6 +64,7 @@ func makeMuxRouter() http.Handler {
 func handleGetPending(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
 	var txs []transactions.Transaction
+
 	txs = append(txs, bc.GetPendingTransactions()...)
 
 	bytes, err := json.MarshalIndent(txs, "", "  ")
@@ -128,26 +137,24 @@ func handleGetTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
-	var m Message
-
+	var add AddTransaction
+	var res Response
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&m); err != nil {
+
+	if err := decoder.Decode(&add); err != nil {
 		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
 		return
 	}
 	defer r.Body.Close()
 
-	respondWithJSON(w, r, http.StatusCreated, m)
+	//respondWithJSON(w, r, http.StatusCreated, m)
 
 	bc := blockchain.GetInstance()
+	res.TxHash = add.TxHash
 
-	pubKey := security.GenerateKey(m.From)
+	bc.AppendSignature(add.TxHash, add.Signature)
 
-	tx := transactions.Tx(pubKey, m.To, m.Amount, m.Tag)
-
-	sign := security.Sign(tx.GetHash(), m.From)
-
-	bc.AddTransaction(tx, sign)
+	respondWithJSON(w, r, 200, res)
 
 	//newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
 	//if err != nil {
@@ -163,6 +170,88 @@ func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
 	//respondWithJSON(w, r, http.StatusCreated, newBlock)
 
 }
+
+func handleNewTransaction(w http.ResponseWriter, r *http.Request) {
+	var m Message
+	var res Response
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&m); err != nil {
+		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
+		return
+	}
+	defer r.Body.Close()
+
+	//respondWithJSON(w, r, http.StatusCreated, m)
+
+	bc := blockchain.GetInstance()
+
+	pubKey := m.From
+
+	tx := transactions.Tx(pubKey, m.To, m.Amount, m.Tag) // TODO - check if the address has unused votes.
+	res.TxHash = tx.GetHash()
+
+	//sign := security.Sign(tx.GetHash(), pubKey)
+
+	bc.AddTransaction(tx)
+
+	respondWithJSON(w, r, 200, res)
+
+	//newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
+	//if err != nil {
+	//	respondWithJSON(w, r, http.StatusInternalServerError, m)
+	//	return
+	//}
+	//if isBlockValid(newBlock, blockchain[len(blockchain)-1]) {
+	//	newBlockchain := append(blockchain, newBlock)
+	//	replaceChain(newBlockchain)
+	//	spew.Dump(blockchain)
+	//}
+	//
+	//respondWithJSON(w, r, http.StatusCreated, newBlock)
+
+}
+
+//func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
+//	var m Message
+//
+//	decoder := json.NewDecoder(r.Body)
+//	if err := decoder.Decode(&m); err != nil {
+//		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
+//		return
+//	}
+//	defer r.Body.Close()
+//
+//	//respondWithJSON(w, r, http.StatusCreated, m)
+//
+//	bc := blockchain.GetInstance()
+//
+//
+//	pubKey := security.GenerateKey(m.From)
+//
+//	tx := transactions.Tx(pubKey, m.To, m.Amount, m.Tag)
+//
+//	sign := security.Sign(tx.GetHash(), m.From)
+//
+//	bc.AddTransaction(tx, sign)
+//
+//	respondWithJSON(w, r, 200, m)
+//
+//
+//	//newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
+//	//if err != nil {
+//	//	respondWithJSON(w, r, http.StatusInternalServerError, m)
+//	//	return
+//	//}
+//	//if isBlockValid(newBlock, blockchain[len(blockchain)-1]) {
+//	//	newBlockchain := append(blockchain, newBlock)
+//	//	replaceChain(newBlockchain)
+//	//	spew.Dump(blockchain)
+//	//}
+//	//
+//	//respondWithJSON(w, r, http.StatusCreated, newBlock)
+//
+//}
 
 func handleMineBlock(w http.ResponseWriter, r *http.Request) {
 

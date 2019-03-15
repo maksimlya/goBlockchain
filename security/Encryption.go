@@ -115,13 +115,37 @@ func GenerateKey(hash string) string {
 	sha := sha256.New()
 	sha.Write([]byte(hash))
 	temp := sha.Sum(nil)
+
+	//koko := sha256.New();
+	//koko.Write([]byte("momo"))
+	//ttt := koko.Sum(nil)
+	//s := hex.EncodeToString(ttt)
+	//fmt.Printf(s + "\n");
+
+	//for i := 0; i < len(s); i++ {
+	//	kss := big.NewInt(int64(temp[i]))
+	//	fmt.Printf(kss.Text(10) + "\n")
+	//	//exp := big.NewInt(26)
+	//	//y.Add(y, y.Exp(kss, exp, nil))
+	//}
+
 	y := big.NewInt(0)
 	one := big.NewInt(1)
 	for i := 0; i < len(temp); i++ {
-		temp := big.NewInt(int64(temp[i]))
-		exp := big.NewInt(26)
-		y.Add(y, y.Exp(temp, exp, nil))
+		ks := big.NewInt(int64(temp[i]))
+		exp := big.NewInt(22)
+		y.Add(y, y.Exp(ks, exp, nil))
 	}
+
+	//for i := 0; i < len(ttt); i++ {
+	//	ks := big.NewInt(int64(temp[i]))
+	//	fmt.Printf(ks.Text(10) + "\n")
+	//	exp := big.NewInt(26)
+	//	y.Add(y, y.Exp(ks, exp, nil))
+	//}
+
+	//fmt.Printf(y.Text(16));
+
 	aNum := y
 	divider := big.NewInt(2)
 	bNum := new(big.Int).Div(y, divider)
@@ -168,7 +192,7 @@ func GeneratePrivKey(hash string) string {
 	one := big.NewInt(1)
 	for i := 0; i < len(temp); i++ {
 		temp := big.NewInt(int64(temp[i]))
-		exp := big.NewInt(26)
+		exp := big.NewInt(22)
 		y.Add(y, y.Exp(temp, exp, nil))
 	}
 	aNum := y

@@ -145,7 +145,7 @@ func HandleTx(request []byte, chain *blockchain.Blockchain) {
 
 	txData := payload.Transaction
 	tx := transactions.DeserializeTransaction(txData)
-	chain.AddTransaction(*tx, "")
+	chain.AddTransaction(*tx)
 
 	fmt.Printf("%s, %d ATTENTION TRANSACTION WILL NOT BE ADDED SINCE WE'RE NOT YET SENDING SIGNATURE!!!", nc.GetNodeAddress(), len(chain.GetPendingTransactions()))
 
@@ -263,9 +263,9 @@ func RequestBlocks() {
 
 func StartServer() {
 	nc = p2p.GetInstance()
-	nc.AppendKnownNode([]string{"192.168.2.101:3000"})
-	nc.SetNodeAddress("192.168.2.101:3000")
-	//nc.SetNodeAddress("192.168.2.110:3000")
+	nc.AppendKnownNode([]string{"localhost:3000"})
+	//nc.SetNodeAddress("192.168.2.101:3000")
+	nc.SetNodeAddress("localhost:3001")
 
 	ln, err := net.Listen(protocol, nc.GetNodeAddress())
 	if err != nil {

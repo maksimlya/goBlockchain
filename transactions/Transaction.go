@@ -18,15 +18,20 @@ type Transaction struct {
 	Amount    int
 	Tag       string
 	Timestamp string
+	Signature string
 }
 
 func Tx(from string, to string, amount int, tag string) Transaction {
 	timestamp := time.Now().Format("02-01-2006 15:04:05")
 	shaHasher := sha256.New()
 	shaHasher.Write([]byte(from + to + strconv.Itoa(amount) + tag + timestamp))
-	tx := Transaction{Hash: hex.EncodeToString(shaHasher.Sum(nil)), From: from, To: to, Amount: amount, Tag: tag, Timestamp: timestamp}
+	tx := Transaction{Hash: hex.EncodeToString(shaHasher.Sum(nil)), From: from, To: to, Amount: amount, Tag: tag, Timestamp: timestamp, Signature: ""}
 
 	return tx
+}
+
+func (t *Transaction) AddSignature(signature string) {
+	t.Signature = signature
 }
 
 func (t *Transaction) Serialize() []byte {
@@ -55,7 +60,7 @@ func DeserializeTransaction(d []byte) *Transaction {
 
 func GetNil() Transaction {
 	timestamp := "0"
-	tx := Transaction{Hash: "0", From: "nil", To: "nil", Amount: 0, Tag: "nil", Timestamp: timestamp}
+	tx := Transaction{Hash: "0", From: "nil", To: "nil", Amount: 0, Tag: "nil", Timestamp: timestamp, Signature: ""}
 	return tx
 }
 
@@ -100,6 +105,10 @@ func (t Transaction) GetAmount() int {
 	return t.Amount
 }
 
+func (t Transaction) GetSignature() string {
+	return t.Signature
+}
+
 func (t Transaction) GetReceiver() string {
 	return t.To
 }
@@ -113,6 +122,7 @@ func (tx *Transaction) String() string {
 	s += "Amount: " + strconv.Itoa(tx.Amount) + "\n"
 	s += "Timestamp: " + tx.Timestamp + "\n"
 	s += "Tag: " + tx.Tag + "\n"
+	s += "Signature: " + tx.Signature + "\n"
 	s += "}\n"
 
 	return s

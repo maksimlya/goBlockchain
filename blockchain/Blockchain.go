@@ -176,11 +176,19 @@ func (bc *Blockchain) GetBlockHashes() [][]byte { // TODO - simplify function by
 //	}
 //}
 
-func (bc *Blockchain) AddTransaction(transaction transactions.Transaction, signature string) {
-	if !security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
-		return
+func (bc *Blockchain) AppendSignature(txHash string, signature string) {
+	for idx := range bc.GetPendingTransactions() {
+		if bc.GetPendingTransactions()[idx].GetHash() == txHash {
+			bc.pendingTx[idx].AddSignature(signature)
+		}
 	}
-	bc.signatures[transaction.GetHash()] = signature
+}
+
+func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
+	//if !security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
+	//	return
+	//}	// TODO - replace verification method.
+	//bc.signatures[transaction.GetHash()] = signature
 	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 
