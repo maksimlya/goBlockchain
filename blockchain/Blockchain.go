@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"goBlockchain/database"
 	"goBlockchain/p2p"
-	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"sync"
 	"time"
@@ -81,9 +80,9 @@ func (bc *Blockchain) MineNextBlock() {
 			amountOfTx++
 			continue
 		}
-		if !security.VerifySignature(bc.signatures[bc.pendingTx[i].GetHash()], bc.pendingTx[i].GetHash(), bc.pendingTx[i].GetSender()) {
-			bc.pendingTx[i] = transactions.GetNil()
-		}
+		//if !security.VerifySignature(bc.signatures[bc.pendingTx[i].GetHash()], bc.pendingTx[i].GetHash(), bc.pendingTx[i].GetSender()) {
+		//	bc.pendingTx[i] = transactions.GetNil()
+		//}	// TODO - check transaction's signature
 		transactios = append(transactios, bc.pendingTx[i])
 		amountOfTx++
 	}
