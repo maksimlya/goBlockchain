@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"goBlockchain/blockchain"
 	"goBlockchain/p2p/handlers"
 	"goBlockchain/webserver"
 	"log"
+	"time"
 )
 
 //CalculateHash hashes the values of a TestContent
@@ -45,9 +48,20 @@ func main() {
 	//
 	//fmt.Println(bc.GetLastBlock())
 	//
-
+	go Runner()
 	go handlers.StartServer()
 	//
 	go log.Fatal(webserver.Run())
 
+}
+
+func Runner() {
+	bc := blockchain.GetInstance()
+	for {
+		time.Sleep(4 * time.Second)
+		if len(bc.GetPendingTransactions()) > 0 {
+			fmt.Printf("Mining new Block....")
+			bc.MineNextBlock()
+		}
+	}
 }
