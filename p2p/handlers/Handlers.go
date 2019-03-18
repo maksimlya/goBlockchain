@@ -265,7 +265,7 @@ func StartServer() {
 	nc = p2p.GetInstance()
 	nc.AppendKnownNode([]string{"localhost:3000"})
 	//nc.SetNodeAddress("192.168.2.101:3000")
-	nc.SetNodeAddress("localhost:3001")
+	nc.SetNodeAddress("localhost:3000")
 
 	ln, err := net.Listen(protocol, nc.GetNodeAddress())
 	if err != nil {
