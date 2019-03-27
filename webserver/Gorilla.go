@@ -28,6 +28,11 @@ type AddTransaction struct {
 	Signature string
 }
 
+type NewToken struct {
+	Tag    string
+	Voters []string
+}
+
 func Run() error {
 	muxServer := makeMuxRouter()
 	httpPort := "8080"
@@ -55,10 +60,52 @@ func makeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/merkle", handleGetMerkle).Methods("GET")
 	muxRouter.HandleFunc("/signatures", handleGetSignatures).Methods("GET")
 	muxRouter.HandleFunc("/pendingTransactions", handleGetPending).Methods("GET")
+	muxRouter.HandleFunc("/txAmount", handleGetTxAmount).Methods("GET")
+	muxRouter.HandleFunc("/generateTokens", handleGenerateTokens).Methods("POST")
 	muxRouter.HandleFunc("/newTransaction", handleNewTransaction).Methods("POST")
 	muxRouter.HandleFunc("/addTransaction", handleAddTransaction).Methods("POST")
 	muxRouter.HandleFunc("/mineBlock", handleMineBlock).Methods("POST")
 	return muxRouter
+}
+
+func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
+	var token NewToken
+
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&token); err != nil {
+		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
+		return
+	}
+	defer r.Body.Close()
+
+	//respondWithJSON(w, r, http.StatusCreated, m)
+
+	bc := blockchain.GetInstance()
+	//res.TxHash = add.TxHash
+
+	for _, receiver := range token.Voters {
+		tx := transactions.Tx("Store", receiver, 1, token.Tag)
+		bc.AddTransaction(tx)
+	}
+
+	//bc.AppendSignature(add.TxHash, add.Signature)
+
+	respondWithJSON(w, r, 200, "Success")
+
+	//newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
+	//if err != nil {
+	//	respondWithJSON(w, r, http.StatusInternalServerError, m)
+	//	return
+	//}
+	//if isBlockValid(newBlock, blockchain[len(blockchain)-1]) {
+	//	newBlockchain := append(blockchain, newBlock)
+	//	replaceChain(newBlockchain)
+	//	spew.Dump(blockchain)
+	//}
+	//
+	//respondWithJSON(w, r, http.StatusCreated, newBlock)
+
 }
 
 func handleGetPending(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +115,19 @@ func handleGetPending(w http.ResponseWriter, r *http.Request) {
 	txs = append(txs, bc.GetPendingTransactions()...)
 
 	bytes, err := json.MarshalIndent(txs, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+}
+
+func handleGetTxAmount(w http.ResponseWriter, r *http.Request) {
+	bc := blockchain.GetInstance()
+
+	txAmount := bc.GetTxAmount()
+
+	bytes, err := json.MarshalIndent(txAmount, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

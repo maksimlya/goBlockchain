@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	difficulty  int = 16 // Amount of 0's in binary format to aim for when mining a block.
-	maxSizeOfTx int = 4  // Amount of tx's per block.
+	difficulty  int = 16   // Amount of 0's in binary format to aim for when mining a block.
+	maxSizeOfTx int = 1000 // Amount of tx's per block.
 )
 
 var (
@@ -162,6 +162,19 @@ func (bc *Blockchain) GetBlockHashes() [][]byte { // TODO - simplify function by
 		}
 	}
 	return hashes
+}
+
+func (bc *Blockchain) GetTxAmount() int { // TODO - simplify function by simply traversing through block keys in database
+	it := bc.Iterator()
+	var amount = 0
+	for {
+		block := it.Next()
+		amount += len(block.GetTransactions())
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	return amount
 }
 
 /*====================================================================================================================*/

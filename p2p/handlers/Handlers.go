@@ -263,9 +263,9 @@ func RequestBlocks() {
 
 func StartServer() {
 	nc = p2p.GetInstance()
-	nc.AppendKnownNode([]string{"localhost:3000"})
+	nc.AppendKnownNode([]string{"localhost:4000"})
 	//nc.SetNodeAddress("192.168.2.101:3000")
-	nc.SetNodeAddress("localhost:3000")
+	nc.SetNodeAddress("localhost:4000")
 
 	ln, err := net.Listen(protocol, nc.GetNodeAddress())
 	if err != nil {
