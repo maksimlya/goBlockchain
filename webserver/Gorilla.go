@@ -2,14 +2,18 @@ package webserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"goBlockchain/blockchain"
 	"goBlockchain/imports/mux"
+	"goBlockchain/security"
 	"goBlockchain/transactions"
+	"goBlockchain/utility"
 	"goBlockchain/webserver/cors"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -29,8 +33,9 @@ type AddTransaction struct {
 }
 
 type NewToken struct {
-	Tag    string
-	Voters []string
+	Tag       string
+	Voters    []string
+	Signature string
 }
 
 func Run() error {
@@ -84,10 +89,20 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
 	//res.TxHash = add.TxHash
 
+	str := utility.Hash(strings.Join(token.Voters, ""))
+
+	fmt.Println(str)
+	check := security.VerifySignature(token.Signature, str, bc.GetAuthorizedTokenGenerators()[0])
+	fmt.Println(check)
 	for _, receiver := range token.Voters {
 		tx := transactions.Tx("Store", receiver, 1, token.Tag)
 		bc.AddTransaction(tx)
 	}
+
+	//fmt.Println(bc.GetAuthorizedTokenGenerators());
+
+	//tx := transactions.Tx(token.Tag,strings.Join(token.Voters,","),0,"Control");
+	//bc.AddTransaction(tx);
 
 	//bc.AppendSignature(add.TxHash, add.Signature)
 

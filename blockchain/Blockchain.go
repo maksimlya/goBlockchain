@@ -19,16 +19,16 @@ var (
 	instance     *Blockchain                    // Instance of this blockchain object
 	once         sync.Once                      // To sync goroutines at critical parts
 	pendingBlock bool                   = false // TODO - test
-
 )
 
 // Main system's structure. Contains last block's hash and last block's id, reference to database, mempool of pending transactions, their signatures and some other data.
 type Blockchain struct {
-	lastHash   string
-	lastId     int
-	db         *database.Database
-	pendingTx  []transactions.Transaction // Mempool of pending transactions.
-	signatures map[string]string          // Signatures to verify the transactions in network.
+	lastHash               string
+	lastId                 int
+	db                     *database.Database
+	pendingTx              []transactions.Transaction // Mempool of pending transactions.
+	signatures             map[string]string          // Signatures to verify the transactions in network.
+	authorizedTokenSources []string
 }
 
 // Since the data stored on a database, we will traverse through it
@@ -62,8 +62,9 @@ func initBlockchain() *Blockchain {
 		bc = Blockchain{lastHash: genesis.GetHash(), lastId: genesis.GetId(), db: db, signatures: make(map[string]string)}
 		bc.db.StoreNewBlockchain(genesis.GetHash(), genesis.GetId(), genesis.Serialize())
 	} else {
-		lastBlock := DeserializeBlock(db.GetLastBlock())                                                                       // If blockchain does exists on database, create one in memory based on the read data.
-		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, signatures: make(map[string]string)} // TODO - rework signatures mempool to sync over multiple peers.
+		lastBlock := DeserializeBlock(db.GetLastBlock())                                                                                                              // If blockchain does exists on database, create one in memory based on the read data.
+		bc = Blockchain{lastHash: lastBlock.GetHash(), lastId: lastBlock.GetId(), db: db, signatures: make(map[string]string)}                                        // TODO - rework signatures mempool to sync over multiple peers.
+		bc.authorizedTokenSources = append(bc.authorizedTokenSources, "33b02183dba1d072dc7f337013b6bb191fb168b86971feb48f5b5ca3a7da1952c75558bea8b7d1bdf5396fcc7099") // Add the authorized token generator.
 	}
 	return &bc
 }
@@ -114,6 +115,10 @@ func (bc *Blockchain) GetPendingTransactions() []transactions.Transaction {
 func (bc Blockchain) GetSignature(txHash string) string {
 	signature := bc.db.GetSignatureByHash(txHash)
 	return signature
+}
+
+func (bc Blockchain) GetAuthorizedTokenGenerators() []string {
+	return bc.authorizedTokenSources
 }
 func (bc *Blockchain) GetAllSignatures() map[string]string {
 	sigs := make(map[string]string, bc.lastId*4)
