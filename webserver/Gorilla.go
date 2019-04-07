@@ -2,10 +2,8 @@ package webserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"goBlockchain/blockchain"
 	"goBlockchain/imports/mux"
-	"goBlockchain/security"
 	"goBlockchain/transactions"
 	"goBlockchain/utility"
 	"goBlockchain/webserver/cors"
@@ -84,18 +82,20 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	//respondWithJSON(w, r, http.StatusCreated, m)
-
 	bc := blockchain.GetInstance()
-	//res.TxHash = add.TxHash
 
-	str := utility.Hash(strings.Join(token.Voters, ""))
+	hash := utility.Hash(strings.Join(token.Voters, "")) // Calculates hash of all addresses that participate in poll
 
-	fmt.Println(str)
-	check := security.VerifySignature(token.Signature, str, bc.GetAuthorizedTokenGenerators()[0])
-	fmt.Println(check)
-	for _, receiver := range token.Voters {
-		tx := transactions.Tx("Store", receiver, 1, token.Tag)
+	autherityAssurance := utility.PostRequest(bc.GetAuthorizedTokenGenerators()[0], token.Signature) // Sends the server authorized pubKey with the signature to assure it will equal the hash we calculated before, therefore assure that token generate request came from it.
+
+	if autherityAssurance == hash {
+		for _, receiver := range token.Voters {
+			tx := transactions.Tx("Generator", receiver, 1, token.Tag)
+			bc.AddTransaction(tx)
+		}
+
+		tx := transactions.Tx(bc.GetAuthorizedTokenGenerators()[0], strings.Join(token.Voters, ","), 0, token.Tag)
+		tx.Signature = token.Signature
 		bc.AddTransaction(tx)
 	}
 

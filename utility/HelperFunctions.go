@@ -5,7 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -44,4 +47,40 @@ func Serialize(b interface{}) []byte {
 		fmt.Println(err)
 	}
 	return result.Bytes()
+}
+
+type Res struct {
+	Result string
+}
+
+func PostRequest(pubKey string, signature string) string {
+	url := "http://localhost:1337/parse/functions/verifySignature" // TODO - change to proper address???
+	//fmt.Println("URL:>", url)
+	//msg := `{"pubKey": "` + pubKey +`", "signature": "` + signature + `"}`
+	msg := map[string]string{"pubKey": pubKey, "signature": signature}
+
+	jsonStr, _ := json.Marshal(msg)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Parse-Application-Id", "POLLS")
+	req.Header.Set("X-Parse-REST-API-Key", "BLOCKCHAIN")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	r := Res{}
+
+	err = json.Unmarshal(body, &r)
+
+	if err == nil {
+		return r.Result
+	} else {
+		return ""
+	}
+
 }
