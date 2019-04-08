@@ -318,7 +318,7 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 	return blocks
 }
 
-//// TODO - rework function for polls use ( aka check balance for a given poll tag )
+// Checks vote balance for given user in certain poll
 func (bc *Blockchain) GetBalanceForAddress(address string, pollTag string) int {
 	amount := 0
 	it := bc.Iterator()
