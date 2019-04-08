@@ -5,6 +5,7 @@ import (
 	"goBlockchain/database"
 	"goBlockchain/p2p"
 	"goBlockchain/transactions"
+	"goBlockchain/utility"
 	"sync"
 	"time"
 )
@@ -95,10 +96,10 @@ func (bc *Blockchain) MineNextBlock() {
 	bc.db.StoreBlock(newBlock.GetHash(), newBlock.GetId(), newBlock.Serialize())
 	bc.lastId = newBlock.GetId()
 	bc.lastHash = newBlock.GetHash()
-	for i := range transactios {
-		txHash := transactios[i].GetHash()
-		bc.db.StoreSignature(txHash, bc.signatures[txHash])
-	}
+	//for i := range transactios {
+	//	txHash := transactios[i].GetHash()
+	//	bc.db.StoreSignature(txHash, bc.signatures[txHash])
+	//}
 }
 
 func (bc *Blockchain) BlockFound(block *Block) {
@@ -169,6 +170,24 @@ func (bc *Blockchain) GetBlockHashes() [][]byte { // TODO - simplify function by
 	return hashes
 }
 
+func (bc *Blockchain) GetControlSig(tag string) transactions.Transaction {
+	it := bc.Iterator()
+
+	for {
+		block := it.Next()
+		txs := block.GetTransactions()
+		for _, tx := range txs {
+			if tx.GetTag() == tag && tx.GetAmount() == 0 {
+				return tx
+			}
+		}
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	return transactions.GetNil()
+}
+
 func (bc *Blockchain) GetTxAmount() int { // TODO - simplify function by simply traversing through block keys in database
 	it := bc.Iterator()
 	var amount = 0
@@ -202,10 +221,13 @@ func (bc *Blockchain) AppendSignature(txHash string, signature string) {
 }
 
 func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
-	//if !security.VerifySignature(signature, transaction.GetHash(), transaction.GetSender()) {
-	//	return
-	//}	// TODO - replace verification method.
-	//bc.signatures[transaction.GetHash()] = signature
+
+	if transaction.GetSender() != "Generator" {
+		hash := utility.PostRequest(transaction.GetSender(), transaction.GetSignature())
+		if hash != transaction.GetHash() { // Verify properly signed transaction.
+			return
+		}
+	}
 	bc.pendingTx = append(bc.pendingTx, transaction)
 }
 

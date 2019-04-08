@@ -26,7 +26,11 @@ type Response struct {
 }
 
 type AddTransaction struct {
-	TxHash    string
+	Sender    string
+	Receiver  string
+	Amount    int
+	Tag       string
+	Timestamp string
 	Signature string
 }
 
@@ -65,7 +69,6 @@ func makeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/pendingTransactions", handleGetPending).Methods("GET")
 	muxRouter.HandleFunc("/txAmount", handleGetTxAmount).Methods("GET")
 	muxRouter.HandleFunc("/generateTokens", handleGenerateTokens).Methods("POST")
-	muxRouter.HandleFunc("/newTransaction", handleNewTransaction).Methods("POST")
 	muxRouter.HandleFunc("/addTransaction", handleAddTransaction).Methods("POST")
 	muxRouter.HandleFunc("/mineBlock", handleMineBlock).Methods("POST")
 	return muxRouter
@@ -88,15 +91,17 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 
 	autherityAssurance := utility.PostRequest(bc.GetAuthorizedTokenGenerators()[0], token.Signature) // Sends the server authorized pubKey with the signature to assure it will equal the hash we calculated before, therefore assure that token generate request came from it.
 
+	tx := transactions.Tx(bc.GetAuthorizedTokenGenerators()[0], strings.Join(token.Voters, ","), 0, token.Tag, time.Now().String())
+	tx.Signature = token.Signature
+	bc.AddTransaction(tx)
+	bc.MineNextBlock()
+
 	if autherityAssurance == hash {
 		for _, receiver := range token.Voters {
-			tx := transactions.Tx("Generator", receiver, 1, token.Tag)
+			tx := transactions.Tx("Generator", receiver, 1, token.Tag, time.Now().String())
 			bc.AddTransaction(tx)
 		}
 
-		tx := transactions.Tx(bc.GetAuthorizedTokenGenerators()[0], strings.Join(token.Voters, ","), 0, token.Tag)
-		tx.Signature = token.Signature
-		bc.AddTransaction(tx)
 	}
 
 	//fmt.Println(bc.GetAuthorizedTokenGenerators());
@@ -212,6 +217,7 @@ func handleGetTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
+
 	var add AddTransaction
 	var res Response
 	decoder := json.NewDecoder(r.Body)
@@ -225,50 +231,14 @@ func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
 	//respondWithJSON(w, r, http.StatusCreated, m)
 
 	bc := blockchain.GetInstance()
-	res.TxHash = add.TxHash
 
-	bc.AppendSignature(add.TxHash, add.Signature)
-
-	respondWithJSON(w, r, 200, res)
-
-	//newBlock, err := generateBlock(blockchain[len(blockchain)-1], m.BPM)
-	//if err != nil {
-	//	respondWithJSON(w, r, http.StatusInternalServerError, m)
-	//	return
-	//}
-	//if isBlockValid(newBlock, blockchain[len(blockchain)-1]) {
-	//	newBlockchain := append(blockchain, newBlock)
-	//	replaceChain(newBlockchain)
-	//	spew.Dump(blockchain)
-	//}
-	//
-	//respondWithJSON(w, r, http.StatusCreated, newBlock)
-
-}
-
-func handleNewTransaction(w http.ResponseWriter, r *http.Request) {
-	var m Message
-	var res Response
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&m); err != nil {
-		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
-		return
-	}
-	defer r.Body.Close()
-
-	//respondWithJSON(w, r, http.StatusCreated, m)
-
-	bc := blockchain.GetInstance()
-
-	pubKey := m.From
-
-	tx := transactions.Tx(pubKey, m.To, m.Amount, m.Tag) // TODO - check if the address has unused votes.
-	res.TxHash = tx.GetHash()
-
-	//sign := security.Sign(tx.GetHash(), pubKey)
+	tx := transactions.Tx(add.Sender, add.Receiver, add.Amount, add.Tag, add.Timestamp)
+	tx.Signature = add.Signature
 
 	bc.AddTransaction(tx)
+	//res.TxHash = tx.GetHash()
+
+	//bc.AppendSignature(add.TxHash, add.Signature)
 
 	respondWithJSON(w, r, 200, res)
 

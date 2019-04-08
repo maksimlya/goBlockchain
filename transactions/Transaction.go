@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 )
 
 type Transaction struct {
@@ -21,8 +20,8 @@ type Transaction struct {
 	Signature string
 }
 
-func Tx(from string, to string, amount int, tag string) Transaction {
-	timestamp := time.Now().Format("02-01-2006 15:04:05")
+func Tx(from string, to string, amount int, tag string, timestamp string) Transaction {
+	//timestamp := time.Now().Format("02-01-2006 15:04:05")
 	shaHasher := sha256.New()
 	shaHasher.Write([]byte(from + to + strconv.Itoa(amount) + tag + timestamp))
 	tx := Transaction{Hash: hex.EncodeToString(shaHasher.Sum(nil)), From: from, To: to, Amount: amount, Tag: tag, Timestamp: timestamp, Signature: ""}
