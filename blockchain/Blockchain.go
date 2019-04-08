@@ -222,9 +222,12 @@ func (bc *Blockchain) AppendSignature(txHash string, signature string) {
 
 func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
 
-	if transaction.GetSender() != "Generator" {
+	if transaction.GetSender() != "Generator" && transaction.GetAmount() > 0 {
 		hash := utility.PostRequest(transaction.GetSender(), transaction.GetSignature())
 		if hash != transaction.GetHash() { // Verify properly signed transaction.
+			return
+		}
+		if bc.GetBalanceForAddress(transaction.GetSender(), transaction.GetTag()) < 1 {
 			return
 		}
 	}
@@ -316,43 +319,33 @@ func (bc *Blockchain) TraverseForwardBlockchain() []*Block {
 }
 
 //// TODO - rework function for polls use ( aka check balance for a given poll tag )
-//func (bc *Blockchain) GetBalanceForAddress(address string) int {
-//	bc.db, _ = bolt.Open("blockchain.db", 0600, nil)
-//	var amount = 0
-//	it := bc.Iterator()
-//	err := bc.db.View(func(tx *bolt.Tx) error {
-//		s := tx.Bucket([]byte("signatures"))
-//
-//		for {
-//			block := it.Next()
-//			for _, element := range block.GetTransactions() {
-//				signature := string(s.Get([]byte(element.GetHash())))
-//				if element.GetReceiver() == address {
-//					if security.VerifySignature(signature, element.GetHash(), element.GetSender()) {
-//						amount += element.GetAmount()
-//					}
-//				}
-//				if element.GetSender() == address {
-//					if security.VerifySignature(signature, element.GetHash(), element.GetSender()) {
-//						amount -= element.GetAmount()
-//					}
-//				}
-//			}
-//
-//			if block.GetPreviousHash() == "0" {
-//				break
-//			}
-//		}
-//
-//		return nil
-//	})
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	bc.db.Close()
-//	return amount
-//
-//}
+func (bc *Blockchain) GetBalanceForAddress(address string, pollTag string) int {
+	amount := 0
+	it := bc.Iterator()
+	for {
+		block := it.Next()
+		txs := block.GetTransactions()
+		for _, tx := range txs {
+			if tx.GetTag() == pollTag {
+				fmt.Println(address)
+				if tx.GetReceiver() == address {
+
+					amount += tx.GetAmount()
+				}
+				if tx.GetSender() == address {
+					amount -= tx.GetAmount()
+				}
+			}
+		}
+
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	fmt.Println(amount)
+	return amount
+
+}
 
 func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that function (should work now)
 
