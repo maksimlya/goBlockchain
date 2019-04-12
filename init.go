@@ -60,7 +60,7 @@ func Runner() {
 	for {
 		time.Sleep(4 * time.Second)
 		if len(bc.GetPendingTransactions()) > 0 {
-			fmt.Printf("Mining new Block....\n")
+			fmt.Printf("Mining new Block......\n")
 			bc.MineNextBlock()
 		}
 	}
