@@ -6,6 +6,7 @@ import (
 	"goBlockchain/p2p"
 	"goBlockchain/transactions"
 	"goBlockchain/utility"
+	"log"
 	"sync"
 	"time"
 )
@@ -228,7 +229,7 @@ func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
 			return
 		}
 		if bc.GetBalanceForAddress(transaction.GetSender(), transaction.GetTag()) < 1 {
-			fmt.Println("Log Err: Balance of " + transaction.GetSender() + " equals to 0 in poll tag " + transaction.GetTag())
+			log.Println("Log Err: Balance of " + transaction.GetSender() + " equals to 0 in poll tag " + transaction.GetTag())
 
 			return
 		}
@@ -329,7 +330,6 @@ func (bc *Blockchain) GetBalanceForAddress(address string, pollTag string) int {
 		txs := block.GetTransactions()
 		for _, tx := range txs {
 			if tx.GetTag() == pollTag {
-				fmt.Println(address)
 				if tx.GetReceiver() == address {
 
 					amount += tx.GetAmount()
