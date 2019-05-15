@@ -228,6 +228,7 @@ func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
 			return
 		}
 		if bc.GetBalanceForAddress(transaction.GetSender(), transaction.GetTag()) < 1 {
+			fmt.Println("Log Err: Balance of " + transaction.GetSender() + " equals to 0 in poll tag " + transaction.GetTag())
 			return
 		}
 	}
@@ -342,7 +343,6 @@ func (bc *Blockchain) GetBalanceForAddress(address string, pollTag string) int {
 			break
 		}
 	}
-	fmt.Println(amount)
 	return amount
 
 }
