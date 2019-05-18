@@ -22,7 +22,8 @@ type Message struct {
 	Tag    string
 }
 type Response struct {
-	TxHash string
+	TxHash  string
+	Message string
 }
 
 type AddTransaction struct {
@@ -87,18 +88,20 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 
 	bc := blockchain.GetInstance()
 
-	hash := utility.Hash(strings.Join(token.Voters, "")) // Calculates hash of all addresses that participate in poll
+	hash := utility.Hash(strings.Join(token.Voters, ",")) // Calculates hash of all addresses that participate in poll
 
 	autherityAssurance := utility.PostRequest(bc.GetAuthorizedTokenGenerators()[0], token.Signature) // Sends the server authorized pubKey with the signature to assure it will equal the hash we calculated before, therefore assure that token generate request came from it.
 
 	tx := transactions.Tx(bc.GetAuthorizedTokenGenerators()[0], strings.Join(token.Voters, ","), 0, token.Tag, time.Now().String())
 	tx.Signature = token.Signature
-	bc.AddTransaction(tx)
-	bc.MineNextBlock()
+
+	// Stores control transaction in separate block for later validation....
+	controlId := strconv.Itoa(bc.MineControlBlock(tx))
 
 	if autherityAssurance == hash {
 		for _, receiver := range token.Voters {
 			tx := transactions.Tx("Generator", receiver, 1, token.Tag, time.Now().String())
+			tx.Signature = controlId
 			bc.AddTransaction(tx)
 		}
 
@@ -235,7 +238,9 @@ func handleAddTransaction(w http.ResponseWriter, r *http.Request) {
 	tx := transactions.Tx(add.Sender, add.Receiver, add.Amount, add.Tag, add.Timestamp)
 	tx.Signature = add.Signature
 
-	bc.AddTransaction(tx)
+	result := bc.AddTransaction(tx)
+	res.TxHash = result[0]
+	res.Message = result[1]
 	//res.TxHash = tx.GetHash()
 
 	//bc.AppendSignature(add.TxHash, add.Signature)

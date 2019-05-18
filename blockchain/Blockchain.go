@@ -7,6 +7,8 @@ import (
 	"goBlockchain/transactions"
 	"goBlockchain/utility"
 	"log"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -103,6 +105,23 @@ func (bc *Blockchain) MineNextBlock() {
 	//}
 }
 
+func (bc *Blockchain) MineControlBlock(transaction transactions.Transaction) int {
+	lastBlock := DeserializeBlock(bc.db.GetLastBlock())
+	var txs []transactions.Transaction
+
+	txs = append(txs, transaction)
+
+	newBlock := MineBlock(lastBlock.GetId()+1, difficulty, string(lastBlock.GetHash()), txs)
+
+	nc.BroadcastBlock(newBlock.Serialize()) // TODO - improve
+
+	bc.db.StoreBlock(newBlock.GetHash(), newBlock.GetId(), newBlock.Serialize())
+	bc.lastId = newBlock.GetId()
+	bc.lastHash = newBlock.GetHash()
+
+	return newBlock.GetId()
+}
+
 func (bc *Blockchain) BlockFound(block *Block) {
 
 }
@@ -189,6 +208,25 @@ func (bc *Blockchain) GetControlSig(tag string) transactions.Transaction {
 	return transactions.GetNil()
 }
 
+// Function to check whether Generator transaction is valid by checking control block for proper receipents
+func (bc *Blockchain) CheckControlBlock(blockId string, pubKey string) bool {
+	if blockId == "" {
+		return false // If signature didn't exist, therefore no valid control block was found, and the transaction won't be valid.
+	}
+	bId, _ := strconv.Atoi(blockId)
+	block := bc.GetBlockById(bId)
+
+	controlArr := strings.Split(block.GetTransactions()[0].GetReceiver(), ",")
+
+	for _, value := range controlArr {
+		if value == pubKey {
+			return true
+		}
+	}
+	return false
+
+}
+
 func (bc *Blockchain) GetTxAmount() int { // TODO - simplify function by simply traversing through block keys in database
 	it := bc.Iterator()
 	var amount = 0
@@ -221,20 +259,37 @@ func (bc *Blockchain) AppendSignature(txHash string, signature string) {
 	}
 }
 
-func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) {
+func (bc *Blockchain) AddTransaction(transaction transactions.Transaction) []string {
+	var response = make([]string, 2)
+	response[0] = transaction.GetHash()
 
 	if transaction.GetSender() != "Generator" && transaction.GetAmount() > 0 {
-		hash := utility.PostRequest(transaction.GetSender(), transaction.GetSignature())
-		if hash != transaction.GetHash() { // Verify properly signed transaction.
-			return
+		hash := utility.PostRequest(transaction.GetSender(), transaction.GetSignature()) // Testing Signature and therefore identity of the sender...
+		if hash != transaction.GetHash() {                                               // Verify properly signed transaction.
+			log.Println("Log Err: Signature from " + transaction.GetSender() + " could not be verified.... rejecting (trying to hack???)")
+
+			response[1] = "Bad Signature"
+			return response
 		}
 		if bc.GetBalanceForAddress(transaction.GetSender(), transaction.GetTag()) < 1 {
 			log.Println("Log Err: Balance of " + transaction.GetSender() + " equals to 0 in poll tag " + transaction.GetTag())
 
-			return
+			response[1] = "Balance equals 0 in poll " + transaction.GetTag() + " from " + transaction.GetSender() + " to " + transaction.GetReceiver()
+			return response
+
 		}
+	} else if !bc.CheckControlBlock(transaction.GetSignature(), transaction.GetReceiver()) {
+		log.Println("Log Err: no proper control block was found for transaction from " + transaction.GetSender() + ".... rejecting.....")
+
+		response[1] = "Signature error w/control block"
+		return response
+
 	}
+
 	bc.pendingTx = append(bc.pendingTx, transaction)
+
+	response[1] = "Success : TxHash: " + transaction.GetHash()
+	return response
 }
 
 func (bc *Blockchain) Iterator() *BlockchainIterator {
