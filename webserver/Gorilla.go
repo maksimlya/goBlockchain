@@ -21,6 +21,14 @@ type Message struct {
 	Amount int
 	Tag    string
 }
+
+type ResultsHandler struct {
+	PollTag string
+	Choices []string
+}
+type ResultsWriter struct {
+	Results map[string]int
+}
 type Response struct {
 	TxHash  string
 	Message string
@@ -72,7 +80,51 @@ func makeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/generateTokens", handleGenerateTokens).Methods("POST")
 	muxRouter.HandleFunc("/addTransaction", handleAddTransaction).Methods("POST")
 	muxRouter.HandleFunc("/mineBlock", handleMineBlock).Methods("POST")
+	muxRouter.HandleFunc("/getResults", handleGetResults).Methods("POST")
 	return muxRouter
+}
+
+func handleGetResults(w http.ResponseWriter, r *http.Request) {
+	var handler ResultsHandler
+
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&handler); err != nil {
+		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
+		return
+	}
+	defer r.Body.Close()
+
+	var results ResultsWriter
+	results.Results = make(map[string]int, len(handler.Choices))
+
+	for _, choice := range handler.Choices {
+		results.Results[choice] = 0
+	}
+
+	bc := blockchain.GetInstance()
+
+	blocks := bc.TraverseBlockchain()
+
+	for _, block := range blocks {
+		txs := block.GetTransactions()
+
+		for _, tx := range txs {
+			if tx.GetTag() == handler.PollTag {
+				if containedIn(tx.GetReceiver(), handler.Choices) {
+					results.Results[tx.GetReceiver()]++
+				}
+			}
+		}
+	}
+
+	bytes, err := json.MarshalIndent(results.Results, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+
 }
 
 func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
@@ -322,4 +374,13 @@ func respondWithJSON(w http.ResponseWriter, r *http.Request, code int, payload i
 	}
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func containedIn(tag string, slice []string) bool {
+	for _, value := range slice {
+		if tag == value {
+			return true
+		}
+	}
+	return false
 }
