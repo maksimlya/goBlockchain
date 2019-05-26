@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"goBlockchain/blockchain"
 	"goBlockchain/imports/mux"
 	"goBlockchain/transactions"
@@ -25,9 +26,11 @@ type Message struct {
 type ResultsHandler struct {
 	PollTag string
 	Choices []string
+	User    string
 }
 type ResultsWriter struct {
-	Results map[string]int
+	Results     map[string]int
+	VoteBalance int
 }
 type Response struct {
 	TxHash  string
@@ -47,6 +50,10 @@ type NewToken struct {
 	Tag       string
 	Voters    []string
 	Signature string
+}
+
+type ResAmount struct {
+	Amount int
 }
 
 func Run() error {
@@ -77,11 +84,38 @@ func makeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/signatures", handleGetSignatures).Methods("GET")
 	muxRouter.HandleFunc("/pendingTransactions", handleGetPending).Methods("GET")
 	muxRouter.HandleFunc("/txAmount", handleGetTxAmount).Methods("GET")
+	muxRouter.HandleFunc("/getBalance", handleGetBalance).Methods("GET")
 	muxRouter.HandleFunc("/generateTokens", handleGenerateTokens).Methods("POST")
 	muxRouter.HandleFunc("/addTransaction", handleAddTransaction).Methods("POST")
 	muxRouter.HandleFunc("/mineBlock", handleMineBlock).Methods("POST")
 	muxRouter.HandleFunc("/getResults", handleGetResults).Methods("POST")
 	return muxRouter
+}
+
+func handleGetBalance(w http.ResponseWriter, r *http.Request) {
+	var handler AddTransaction
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&handler); err != nil {
+		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
+		return
+	}
+	defer r.Body.Close()
+
+	fmt.Println(handler)
+
+	bc := blockchain.GetInstance()
+
+	var results ResAmount
+
+	results.Amount = bc.GetBalanceForAddress(handler.Sender, handler.Tag)
+
+	bytes, err := json.MarshalIndent(results.Amount, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
 }
 
 func handleGetResults(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +138,8 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 
 	bc := blockchain.GetInstance()
 
+	results.VoteBalance = bc.GetBalanceForAddress(handler.User, handler.PollTag)
+
 	blocks := bc.TraverseBlockchain()
 
 	for _, block := range blocks {
@@ -118,7 +154,7 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	bytes, err := json.MarshalIndent(results.Results, "", "  ")
+	bytes, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
