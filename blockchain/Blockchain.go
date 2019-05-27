@@ -435,6 +435,10 @@ func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that functi
 func (bc *Blockchain) DataListener() {
 	for {
 		time.Sleep(15 * time.Second)
+		if !database.IsBlockchainExists() {
+			fmt.Println("Database deleted alert")
+			bc = initBlockchain() // TODO - Add auto-restart on db deletion
+		}
 		if !bc.ValidateChain() {
 			fmt.Println("Blockchain data was compromised... requesting new copy from neighbor peer...")
 			bc.lastId = 0
