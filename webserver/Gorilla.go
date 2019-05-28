@@ -30,6 +30,7 @@ type ResultsHandler struct {
 }
 type ResultsWriter struct {
 	Results     map[string]int
+	Voters      map[string][]string
 	VoteBalance int
 }
 type Response struct {
@@ -131,6 +132,7 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 
 	var results ResultsWriter
 	results.Results = make(map[string]int, len(handler.Choices))
+	results.Voters = make(map[string][]string, len(handler.Choices))
 
 	for _, choice := range handler.Choices {
 		results.Results[choice] = 0
@@ -149,6 +151,7 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 			if tx.GetTag() == handler.PollTag {
 				if containedIn(tx.GetReceiver(), handler.Choices) {
 					results.Results[tx.GetReceiver()]++
+					results.Voters[tx.GetReceiver()] = append(results.Voters[tx.GetReceiver()], tx.GetSender())
 				}
 			}
 		}
