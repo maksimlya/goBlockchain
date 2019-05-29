@@ -111,6 +111,8 @@ func handleGetBalance(w http.ResponseWriter, r *http.Request) {
 
 	results.Amount = bc.GetBalanceForAddress(handler.Sender, handler.Tag)
 
+	fmt.Println("Balance for user " + handler.Sender + " equals " + strconv.Itoa(results.Amount) + " in poll " + handler.Tag)
+
 	bytes, err := json.MarshalIndent(results.Amount, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
