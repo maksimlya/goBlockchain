@@ -103,8 +103,6 @@ func handleGetBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	fmt.Println(handler)
-
 	bc := blockchain.GetInstance()
 
 	var results ResAmount
