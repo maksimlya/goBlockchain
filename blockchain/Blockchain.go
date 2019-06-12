@@ -403,6 +403,29 @@ func (bc *Blockchain) GetBalanceForAddress(address string, pollTag string) int {
 
 }
 
+func (bc *Blockchain) GetTargetForAddress(address string, pollTag string) string {
+	target := ""
+	it := bc.Iterator()
+	for {
+		block := it.Next()
+		txs := block.GetTransactions()
+		for _, tx := range txs {
+			if tx.GetTag() == pollTag {
+				if tx.GetSender() == address {
+					target = tx.GetReceiver()
+				}
+
+			}
+		}
+
+		if block.GetPreviousHash() == "0" {
+			break
+		}
+	}
+	return target
+
+}
+
 func (bc *Blockchain) AddBlock(block *Block) bool { // TODO - Rework that function (should work now)
 
 	if block.GetId() == 0 {

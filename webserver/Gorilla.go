@@ -32,6 +32,7 @@ type ResultsWriter struct {
 	Results     map[string]int
 	Voters      map[string][]string
 	VoteBalance int
+	VoteTarget  string
 }
 type Response struct {
 	TxHash  string
@@ -141,6 +142,10 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
 
 	results.VoteBalance = bc.GetBalanceForAddress(handler.User, handler.PollTag)
+	results.VoteTarget = ""
+	if results.VoteBalance == 0 {
+		results.VoteTarget = bc.GetTargetForAddress(handler.User, handler.PollTag)
+	}
 
 	blocks := bc.TraverseBlockchain()
 
@@ -188,7 +193,8 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 
 	// Stores control transaction in separate block for later validation....
 	controlId := strconv.Itoa(bc.MineControlBlock(tx))
-
+	fmt.Println(autherityAssurance)
+	fmt.Println(hash)
 	if autherityAssurance == hash {
 		for _, receiver := range token.Voters {
 			tx := transactions.Tx("Generator", receiver, 1, token.Tag, time.Now().String())
