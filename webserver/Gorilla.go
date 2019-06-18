@@ -60,7 +60,7 @@ type ResAmount struct {
 
 func Run() error {
 	muxServer := makeMuxRouter()
-	httpPort := "8080"
+	httpPort := "5000"
 	handler := cors.Default().Handler(muxServer)
 	log.Println("Listening on ", httpPort)
 	s := &http.Server{
