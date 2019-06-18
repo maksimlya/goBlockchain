@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"goBlockchain/blockchain"
-	"goBlockchain/p2p/handlers"
 	"goBlockchain/webserver"
 	"log"
 	"time"
@@ -50,7 +49,7 @@ func main() {
 	//fmt.Println(bc.GetLastBlock())
 	//
 	go Runner()
-	go handlers.StartServer()
+	//go handlers.StartServer()
 	//
 	go log.Fatal(webserver.Run())
 
