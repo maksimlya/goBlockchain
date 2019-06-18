@@ -54,7 +54,7 @@ type Res struct {
 }
 
 func PostRequest(pubKey string, signature string) string {
-	url := "http://localhost:1337/parse/functions/verifySignature" // TODO - change to proper address???
+	url := "https://parse-blockcchain.herokuapp.com/parse/functions/verifySignature" // TODO - change to proper address???
 	//fmt.Println("URL:>", url)
 	//msg := `{"pubKey": "` + pubKey +`", "signature": "` + signature + `"}`
 	msg := map[string]string{"pubKey": pubKey, "signature": signature}
