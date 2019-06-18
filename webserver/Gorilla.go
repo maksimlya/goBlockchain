@@ -186,7 +186,7 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 	
 	
 	bc := blockchain.GetInstance()
-
+	fmt.Println(bc.GetAuthorizedTokenGenerators()[0])
 	hash := utility.Hash(strings.Join(token.Voters, ",")) // Calculates hash of all addresses that participate in poll
 	fmt.Println("BEFORE POST MESSAGE");
 	
