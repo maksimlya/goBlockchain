@@ -177,7 +177,6 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	fmt.println('RECEIVED GEN_TOKENS REQUEST ===============================================');
-	fmt.println(r);
 	if err := decoder.Decode(&token); err != nil {
 		respondWithJSON(w, r, http.StatusBadRequest, r.Body)
 		return
