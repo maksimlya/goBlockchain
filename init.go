@@ -49,7 +49,7 @@ func main() {
 	//fmt.Println(bc.GetLastBlock())
 	//
 	go Runner()
-	//go handlers.StartServer()
+	go handlers.StartServer()
 	//
 	go log.Fatal(webserver.Run())
 
