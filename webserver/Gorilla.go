@@ -173,7 +173,7 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
-	fmt.Println('RECEIVED GEN TOKEN REQUEST');
+	fmt.Println("RECEIVED GEN TOKEN REQUEST");
 	var token NewToken
 
 	decoder := json.NewDecoder(r.Body)
@@ -188,7 +188,7 @@ func handleGenerateTokens(w http.ResponseWriter, r *http.Request) {
 	bc := blockchain.GetInstance()
 
 	hash := utility.Hash(strings.Join(token.Voters, ",")) // Calculates hash of all addresses that participate in poll
-	fmt.Println('BEFORE POST MESSAGE');
+	fmt.Println("BEFORE POST MESSAGE");
 	autherityAssurance := utility.PostRequest(bc.GetAuthorizedTokenGenerators()[0], token.Signature) // Sends the server authorized pubKey with the signature to assure it will equal the hash we calculated before, therefore assure that token generate request came from it.
 
 	tx := transactions.Tx(bc.GetAuthorizedTokenGenerators()[0], strings.Join(token.Voters, ","), 0, token.Tag, time.Now().String())
