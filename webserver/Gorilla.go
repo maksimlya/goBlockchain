@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -60,7 +61,7 @@ type ResAmount struct {
 
 func Run() error {
 	muxServer := makeMuxRouter()
-	httpPort := "8080"
+	httpPort := os.Getenv("PORT")
 	handler := cors.Default().Handler(muxServer)
 	log.Println("Listening on ", httpPort)
 	s := &http.Server{
